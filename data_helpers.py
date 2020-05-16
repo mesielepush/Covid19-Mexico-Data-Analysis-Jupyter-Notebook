@@ -151,5 +151,32 @@ def get_cummulative(name,raw_data):
     return cummulative
 
 
+def get_max_to_min(raw_data,n=None,discrete=True,include_national=False):
+    dic = {}
+    
+    if include_national:
+        names = raw_data.nombre
+    else:
+        names = [x for x in raw_data.nombre if x != 'Nacional']
+
+    for i in names:
+        
+        if discrete:
+            result = get_discrete(i,raw_data).values[0][3:].sum()
+        else:
+            result = get_cummulative(i,raw_data)[-1]
+        
+        if result in dic.keys():
+            dic[result+0.1] = i
+        else:
+            dic[result] = i
+
+    dic_sort = sorted(dic.keys(),reverse=True)
+    sorted_names = [dic[x] for x in dic_sort][:n]
+    
+    if discrete:
+        return [get_discrete(x,raw_data) for x in sorted_names], sorted_names
+    else:
+        return [get_cummulative(x,raw_data) for x in sorted_names], sorted_names
     
 
