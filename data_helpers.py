@@ -93,15 +93,12 @@ def patient_data_keys(column_name,key = None):
     }
 
     if column_name in ['treated_at','borne_at','lives_at']:
+        
         if key:
-            print('Column name: ', column_name.upper())
-            print('Key: ', key, ' : ', dictionary['states'][key])
-            
+            return dictionary['states'][key]
         else:
-            
             print('KEYS for ', column_name.upper(),':')
             for i in dictionary['states'].keys():
-                
                 print('Key: ', i, ' : ', dictionary['states'][i])
                 
     elif column_name in ['intubated', 'pneumonia','pregnancy',
@@ -111,29 +108,24 @@ def patient_data_keys(column_name,key = None):
                         'kidney_disease', 'smoker','close_to_infected',
                         'migrant','icu']:
         if key:
-            print('Column name: ', column_name.upper())
-            print('Key: ', key, ' : ', dictionary['boolean'][key])
+            return dictionary['boolean'][key]
             
         else:
             print('KEYS for ', column_name.upper(),':')
             for i in dictionary['boolean'].keys():
-                
                 print('Key: ', i, ' : ', dictionary['boolean'][i])
                 
     else:
-
         if column_name not in dictionary.keys():
             print('ERROR: Column name not in the data base, please check')
             return
+        
         if key:
-            print('Column name: ', column_name.upper())
-            print('Key: ', key, ' : ', dictionary[column_name][key])
-            
+            return dictionary[column_name][key]
+         
         else:
-            
             print('KEYS for ', column_name.upper(),':')
             for i in dictionary[column_name].keys():
-                
                 print('Key: ', i, ' : ', dictionary[column_name][i])
 
 def get_discrete(name,raw_data):
@@ -149,7 +141,6 @@ def get_cummulative(name,raw_data):
         else:
             cummulative.append(i+cummulative[-1])
     return cummulative
-
 
 def get_max_to_min(raw_data,n=None,discrete=True,include_national=False):
     dic = {}
