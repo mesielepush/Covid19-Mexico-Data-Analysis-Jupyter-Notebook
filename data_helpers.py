@@ -129,7 +129,7 @@ def patient_data_keys(column_name,key = None):
                 print('Key: ', i, ' : ', dictionary[column_name][i])
 
 def get_discrete(name,raw_data):
-    return raw_data.loc[raw_data['nombre'] == name]
+    return raw_data.loc[raw_data['nombre'] == name].values[0][3:]
 
 def get_cummulative(name,raw_data):
     cummulative = []
