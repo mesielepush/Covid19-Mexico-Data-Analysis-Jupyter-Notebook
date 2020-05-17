@@ -1,8 +1,4 @@
-def patient_data_keys(column_name,key = None):
-    """ Takes the name of a column and decodes the keys from the database: 
-    '200XXXCOVID19MEXICO.csv' """
-
-    dictionary = {
+patients_codes = {
         'origin': {
             1: 'viral respiratory disease monitor unit - USMER',
             2: 'outside USMER',
@@ -92,14 +88,19 @@ def patient_data_keys(column_name,key = None):
         }
     }
 
+
+def patient_data_keys(column_name,key = None):
+    """ Takes the name of a column and decodes the keys from the database: 
+    '200XXXCOVID19MEXICO.csv' """
+    
     if column_name in ['treated_at','borne_at','lives_at']:
         
         if key:
-            return dictionary['states'][key]
+            return patients_codes['states'][key]
         else:
             print('KEYS for ', column_name.upper(),':')
-            for i in dictionary['states'].keys():
-                print('Key: ', i, ' : ', dictionary['states'][i])
+            for i in patients_codes['states'].keys():
+                print('Key: ', i, ' : ', patients_codes['states'][i])
                 
     elif column_name in ['intubated', 'pneumonia','pregnancy',
                         'speaks_dialect', 'diabetes', 'copd',
@@ -108,25 +109,25 @@ def patient_data_keys(column_name,key = None):
                         'kidney_disease', 'smoker','close_to_infected',
                         'migrant','icu']:
         if key:
-            return dictionary['boolean'][key]
+            return patients_codes['boolean'][key]
             
         else:
             print('KEYS for ', column_name.upper(),':')
-            for i in dictionary['boolean'].keys():
-                print('Key: ', i, ' : ', dictionary['boolean'][i])
+            for i in patients_codes['boolean'].keys():
+                print('Key: ', i, ' : ', patients_codes['boolean'][i])
                 
     else:
-        if column_name not in dictionary.keys():
+        if column_name not in patients_codes.keys():
             print('ERROR: Column name not in the data base, please check')
             return
         
         if key:
-            return dictionary[column_name][key]
+            return patients_codes[column_name][key]
          
         else:
             print('KEYS for ', column_name.upper(),':')
-            for i in dictionary[column_name].keys():
-                print('Key: ', i, ' : ', dictionary[column_name][i])
+            for i in patients_codes[column_name].keys():
+                print('Key: ', i, ' : ', patients_codes[column_name][i])
 
 def get_discrete(name,raw_data):
     if name == 'National':
@@ -157,12 +158,12 @@ def get_max_to_min(raw_data,n=None,discrete=True,include_national=False):
     for i in names:
         
         if discrete:
-            result = get_discrete(i,raw_data).values[0][3:].sum()
+            result = get_discrete(i,raw_data).sum()
         else:
             result = get_cummulative(i,raw_data)[-1]
         
         if result in dic.keys():
-            dic[result+0.1] = i
+            dic[result+0.01] = i
         else:
             dic[result] = i
 
