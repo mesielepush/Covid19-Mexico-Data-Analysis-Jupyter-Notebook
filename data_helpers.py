@@ -190,3 +190,12 @@ def get_age_bins(data,bin_size):
         current += bin_size
         iterations -= 1
     return result
+
+def get_proportions(death_histogram,patients_histogram):
+    result = {}
+    for i in patients_histogram.keys():
+        try:
+            result[i]= (death_histogram[i]/patients_histogram[i])*100
+        except:
+            result[i]=0
+    return result
