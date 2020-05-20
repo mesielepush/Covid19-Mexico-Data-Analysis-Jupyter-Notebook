@@ -174,5 +174,19 @@ def get_max_to_min(raw_data,n=None,discrete=True,include_national=False):
         return [get_discrete(x,raw_data) for x in sorted_names], sorted_names
     else:
         return [get_cummulative(x,raw_data) for x in sorted_names], sorted_names
-    
 
+def get_age_bins(data,bin_size):
+    
+    current = 0
+    bin_size = bin_size
+    iterations = int(max(data['age'])/bin_size)
+    result = {}
+
+    while iterations >= 0:
+        result[f'{current}-{current+(bin_size-1)}'] = 0
+
+        for i in range(current,current+bin_size):
+            result[f'{current}-{current+(bin_size-1)}'] += list(data['age']).count(i)
+        current += bin_size
+        iterations -= 1
+    return result
