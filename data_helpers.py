@@ -199,3 +199,21 @@ def get_proportions(death_histogram,patients_histogram):
         except:
             result[i]=0
     return result
+
+def cohens_d(data1,data2):
+    mean1 = np.mean(data1)
+    mean2 = np.mean(data2)
+    var1  = np.var(data1)
+    var2  = np.var(data2)
+        
+    numerator = mean1 - mean2
+    
+    len1 = len(data1)-1
+    len2 = len(data2)-1
+    
+    total_var = (len1*var1) + (len2*var2)
+    total_len = len1 + len2
+    
+    denominator = np.sqrt(total_var / total_len)
+        
+    return numerator / denominator
