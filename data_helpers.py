@@ -148,17 +148,24 @@ def get_cummulative(name,raw_data):
             cummulative.append(i+cummulative[-1])
     return cummulative
 
-def get_max_to_min(raw_data, include_national = False, reverse = False):
+def get_max_to_min(raw_data, include_national = False, reverse = False, patient_data = False):
     dic = {}
     
-    if include_national:
-        names = raw_data.nombre
+    if patient_data == False:
+
+        if include_national:
+            names = raw_data.nombre
+        else:
+            names = [x for x in raw_data.nombre if x != 'Nacional']
     else:
-        names = [x for x in raw_data.nombre if x != 'Nacional']
+        names = [patients_codes['states'][x] for x in set(raw_data.treated_at)]
 
     for name in names:
         
-        result = raw_data.loc[raw_data['nombre'] == name].values[0][3:].sum()
+        if patient_data:
+            result = list(raw_data['treated_at']).count(inverse_dict_for_name_states[name])
+        else:
+            result = raw_data.loc[raw_data['nombre'] == name].values[0][3:].sum()
                 
         if result in dic.keys():
             dic[result+0.01] = name
@@ -169,7 +176,7 @@ def get_max_to_min(raw_data, include_national = False, reverse = False):
     else:
         dic_sort = sorted(dic.keys(),reverse=True)
 
-    true_dic = {dic_sort[key]:key for key in dic_sort.keys()}
+    true_dic = {dic[key]:key for key in dic.keys()}
 
     return [dic[x] for x in dic_sort],true_dic
 
