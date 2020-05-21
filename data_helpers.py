@@ -176,6 +176,43 @@ def get_max_to_min(raw_data,n=None,discrete=True,include_national=False):
     else:
         return [get_cummulative(x,raw_data) for x in sorted_names], sorted_names
 
+def get_max_to_min_names(raw_data,n=None,include_national=False):
+    dic = {}
+    
+    if include_national:
+        names = set(raw_data['lives_at'])
+    else:
+        names = [x for x in set(raw_data['lives_at']) if x != 'Nacional']
+
+    for name in names:
+        result = list(raw_data['lives_at']).count(name)
+        if result in dic.keys():
+            dic[result+0.01] = name
+        else:
+            dic[result] = name
+
+    dic_sort = sorted(dic.keys(),reverse=True)
+    return [dic[x] for x in dic_sort][:n]
+
+def get_min_to_max_names(raw_data,n=None,include_national=False):
+    dic = {}
+    
+    if include_national:
+        names = set(raw_data['lives_at'])
+    else:
+        names = [x for x in set(raw_data['lives_at']) if x != 'Nacional']
+
+    for name in names:
+        result = list(raw_data['lives_at']).count(name)
+        if result in dic.keys():
+            dic[result+0.01] = name
+        else:
+            dic[result] = name
+
+    dic_sort = sorted(dic.keys(),reverse=False)
+    return [dic[x] for x in dic_sort][:n]
+
+
 def get_age_bins(data,bin_size):
     
     current = 0
@@ -253,11 +290,14 @@ def get_active_database(raw_data,state,window):
     infection_window = pd.to_datetime(datetime.today() - timedelta(days=window))
     data = data[data['onset_symptoms']>infection_window]
     return data
-    
+
 def get_cummulative_actives(raw_data,state,window):
+    import pandas as pd
+    from datetime import datetime, timedelta
     try:
         state_code = inverse_dict_for_name_states[state]
     except:
+        print('###########')
         print('ERROR, the state name is not in the database please check again')
         print('List of state names available: ')
         print('###########')
@@ -275,7 +315,7 @@ def get_cummulative_actives(raw_data,state,window):
     data['onset_symptoms'] = dates
     
     set_dates = set(dates)
-    timeline= pd.date_range(start=min(set_dates), end =data['Updated_at'][0])
+    timeline= pd.date_range(start=min(set_dates), end =data['Updated_at'].iloc[0])
     result = {key:0 for key in timeline}
     
     for day_active in data['onset_symptoms']:
