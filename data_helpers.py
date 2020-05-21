@@ -88,6 +88,7 @@ patients_codes = {
         }
     }
 
+inverse_dict_for_name_states = {patients_codes['states'][i]: i for i in patients_codes['states'].keys()}
 
 def patient_data_keys(column_name,key = None):
     """ Takes the name of a column and decodes the keys from the database: 
@@ -218,3 +219,37 @@ def cohens_d(data1,data2):
     denominator = sqrt(total_var / total_len)
         
     return numerator / denominator
+
+
+def get_illness_proportions(data):
+    from collections import OrderedDict
+    result = {}
+    for i in data.keys():
+        result[i] = list(data[i].values).count(1)/len(data[i])*100
+    result = OrderedDict(sorted(result.items(), key=lambda t: t[1],reverse=False))   
+    return result
+
+def get_active(raw_data,state,window):
+    import pandas as pd
+    from datetime import datetime, timedelta
+    try:
+        state_code = inverse_dict_for_name_states[state]
+    except:
+        print('ERROR, the state name is not in the database please check again')
+        print('List of state names available: ')
+        print('###########')
+        print(inverse_dict_for_name_states.keys())
+        return
+    if state == 'ESTADOS UNIDOS MEXICANOS':
+        data = raw_data
+    else:
+        data = raw_data[raw_data['lives_at'] == state_code]
+    
+    data = data[data['result']!=2]
+    dates = data['onset_symptoms']
+    dates = pd.to_datetime(dates)
+    data = data.drop('onset_symptoms',axis = 1)
+    data['onset_symptoms'] = dates
+    infection_window = pd.to_datetime(datetime.today() - timedelta(days=window))
+    data = data[data['onset_symptoms']>infection_window]
+    return data
