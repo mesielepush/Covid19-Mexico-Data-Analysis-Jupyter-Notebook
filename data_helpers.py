@@ -148,7 +148,7 @@ def get_cummulative(name,raw_data):
             cummulative.append(i+cummulative[-1])
     return cummulative
 
-def get_max_to_min(raw_data,n=None,discrete=True,include_national=False):
+def get_max_to_min(raw_data, include_national = False, reverse = False):
     dic = {}
     
     if include_national:
@@ -156,62 +156,22 @@ def get_max_to_min(raw_data,n=None,discrete=True,include_national=False):
     else:
         names = [x for x in raw_data.nombre if x != 'Nacional']
 
-    for i in names:
-        
-        if discrete:
-            result = get_discrete(i,raw_data).sum()
-        else:
-            result = get_cummulative(i,raw_data)[-1]
-        
-        if result in dic.keys():
-            dic[result+0.01] = i
-        else:
-            dic[result] = i
-
-    dic_sort = sorted(dic.keys(),reverse=True)
-    sorted_names = [dic[x] for x in dic_sort][:n]
-    
-    if discrete:
-        return [get_discrete(x,raw_data) for x in sorted_names], sorted_names
-    else:
-        return [get_cummulative(x,raw_data) for x in sorted_names], sorted_names
-
-def get_max_to_min_names(raw_data,n=None,include_national=False):
-    dic = {}
-    
-    if include_national:
-        names = set(raw_data['lives_at'])
-    else:
-        names = [x for x in set(raw_data['lives_at']) if x != 'Nacional']
-
     for name in names:
-        result = list(raw_data['lives_at']).count(name)
+        
+        result = raw_data.loc[raw_data['nombre'] == name].values[0][3:].sum()
+                
         if result in dic.keys():
             dic[result+0.01] = name
         else:
             dic[result] = name
-
-    dic_sort = sorted(dic.keys(),reverse=True)
-    return [dic[x] for x in dic_sort][:n]
-
-def get_min_to_max_names(raw_data,n=None,include_national=False):
-    dic = {}
-    
-    if include_national:
-        names = set(raw_data['lives_at'])
+    if reverse:
+        dic_sort = sorted(dic.keys(),reverse=False)
     else:
-        names = [x for x in set(raw_data['lives_at']) if x != 'Nacional']
+        dic_sort = sorted(dic.keys(),reverse=True)
 
-    for name in names:
-        result = list(raw_data['lives_at']).count(name)
-        if result in dic.keys():
-            dic[result+0.01] = name
-        else:
-            dic[result] = name
+    true_dic = {dic_sort[key]:key for key in dic_sort.keys()}
 
-    dic_sort = sorted(dic.keys(),reverse=False)
-    return [dic[x] for x in dic_sort][:n]
-
+    return [dic[x] for x in dic_sort],true_dic
 
 def get_age_bins(data,bin_size):
     
