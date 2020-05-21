@@ -229,7 +229,7 @@ def get_illness_proportions(data):
     result = OrderedDict(sorted(result.items(), key=lambda t: t[1],reverse=False))   
     return result
 
-def get_active(raw_data,state,window):
+def get_active_database(raw_data,state,window):
     import pandas as pd
     from datetime import datetime, timedelta
     try:
