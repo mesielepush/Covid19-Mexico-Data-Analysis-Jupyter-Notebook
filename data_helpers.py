@@ -261,19 +261,22 @@ def get_active_database(raw_data,state,window):
 def get_cummulative_actives(raw_data,state,window):
     import pandas as pd
     from datetime import datetime, timedelta
-    try:
-        state_code = inverse_dict_for_name_states[state]
-    except:
-        print('###########')
-        print('ERROR, the state name is not in the database please check again')
-        print('List of state names available: ')
-        print('###########')
-        print(inverse_dict_for_name_states.keys())
-        return
-    if state == 'ESTADOS UNIDOS MEXICANOS':
+    
+    if state in ['ESTADOS UNIDOS MEXICANOS', 'NATIONAL', 'National',' Nacional']:
         data = raw_data
     else:
+        
+        try:
+            state_code = inverse_dict_for_name_states[state]
+        except:
+            print('###########')
+            print('ERROR, the state name is not in the database please check again')
+            print('List of state names available: ')
+            print('###########')
+            print(inverse_dict_for_name_states.keys())
+            return
         data = raw_data[raw_data['lives_at'] == state_code]
+    
     
     data = data[data['result']!=2]
     dates = data['onset_symptoms']
@@ -285,16 +288,18 @@ def get_cummulative_actives(raw_data,state,window):
     timeline= pd.date_range(start=min(set_dates), end =data['Updated_at'].iloc[0])
     result = {key:0 for key in timeline}
     
-    for day_active in data['onset_symptoms']:
+    for ind, day_active in enumerate(data['onset_symptoms']):
         for _ in range(14):
             if day_active not in timeline:
+                continue
+            elif day_active == data['day_of_death'].iloc[ind]:
                 continue
             else:
                 result[day_active] +=1
                 day_active = day_active + timedelta(days=1)
     
     new_data = pd.DataFrame()
-    new_data['cummulative']=result.values()
+    new_data['actives']=result.values()
     new_data['dates'] = result.keys()
     new_data = new_data.set_index('dates',drop=True)
     
