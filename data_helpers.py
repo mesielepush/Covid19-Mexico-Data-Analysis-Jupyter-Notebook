@@ -1,154 +1,125 @@
-patients_codes = {
-        'origin': {
-            1: 'viral respiratory disease monitor unit - USMER',
-            2: 'outside USMER',
-            99: 'no specified'
-        },
-        'sector':{
-            1 : 'red cross',
-            2 : 'Integral Family Development System (DIF)',
-            3 : 'state',
-            4 : 'Mexican Institute for Social Security (IMSS)',
-            5 : 'IMSS-BIENESTAR',
-            6 : 'Institute for Social Security and Services for State Workers (ISSSTE)',
-            7 : 'county',
-            8 : 'Mexican Oil (PEMEX)',
-            9 : 'Private',
-            10 : 'National Secretary of Defense (SEDENA)',
-            11 : 'Secretary of Sea (SEMAR)',
-            12 : 'Secretary of Health (SSA)',
-            13 : 'University',
-            99 : 'no specified'
-        },
-        'sex': {
-            1: 'women',
-            2: 'man',
-            99: 'no specified'
-        },
-        'patient_type': {
-            1: 'outpatient',
-            2: 'hospitalized',
-            99: 'no specified'
-        },
-        'is_mexican': {
-            1: 'mexican',
-            2: 'alien',
-            99: 'no specified'
-        },
-        'result': {
-            1: 'Positive for SARS-CoV-2',
-            2: 'Negative for SARS-CoV-2',
-            3: 'Result Pending'
-        },
-        'states':{
-            1:  'AGUASCALIENTES',
-            2:  'BAJA CALIFORNIA',
-            3:  'BAJA CALIFORNIA SUR',
-            4:  'CAMPECHE',
-            5:  'COAHUILA DE ZARAGOZA',
-            6:  'COLIMA',
-            7:  'CHIAPAS',
-            8:  'CHIHUAHUA',
-            9:  'CIUDAD DE MÉXICO',
-            10: 'DURANGO',
-            11: 'GUANAJUATO',
-            12: 'GUERRERO',
-            13: 'HIDALGO',
-            14: 'JALISCO',
-            15: 'MÉXICO',
-            16: 'MICHOACÁN DE OCAMPO',
-            17: 'MORELOS',
-            18: 'NAYARIT',
-            19: 'NUEVO LEÓN',
-            20: 'OAXACA',
-            21: 'PUEBLA',
-            22: 'QUERÉTARO',
-            23: 'QUINTANA ROO',
-            24: 'SAN LUIS POTOSÍ',
-            25: 'SINALOA',
-            26: 'SONORA',
-            27: 'TABASCO',
-            28: 'TAMAULIPAS',
-            29: 'TLAXCALA',
-            30: 'VERACRUZ DE IGNACIO DE LA LLAVE',
-            31: 'YUCATÁN',
-            32: 'ZACATECAS',
-            36: 'ESTADOS UNIDOS MEXICANOS',
-            97: 'not apply',
-            98: 'unknown',
-            99: 'not specified',
+import pandas as pd
+import numpy as numpy
+from datetime import datetime, timedelta
+from constants import *
 
-        },
-        'boolean':{
-            1: 'yes',
-            2: 'no',
-            97: 'not apply',
-            98: 'unknown',
-            99: 'no specified'
-        }
-    }
-
-inverse_dict_for_name_states = {patients_codes['states'][i]: i for i in patients_codes['states'].keys()}
-
-def patient_data_keys(column_name,key = None):
-    """ Takes the name of a column and decodes the keys from the database: 
-    '200XXXCOVID19MEXICO.csv' """
+class Covid:
     
-    if column_name in ['treated_at','borne_at','lives_at']:
-        
-        if key:
-            return patients_codes['states'][key]
-        else:
-            print('KEYS for ', column_name.upper(),':')
-            for i in patients_codes['states'].keys():
-                print('Key: ', i, ' : ', patients_codes['states'][i])
-                
-    elif column_name in ['intubated', 'pneumonia','pregnancy',
-                        'speaks_dialect', 'diabetes', 'copd',
-                        'asthma','immunosuppression', 'hypertension',
-                        'another_illness','cardiovascular', 'obesity',
-                        'kidney_disease', 'smoker','close_to_infected',
-                        'migrant','icu']:
-        if key:
-            return patients_codes['boolean'][key]
-            
-        else:
-            print('KEYS for ', column_name.upper(),':')
-            for i in patients_codes['boolean'].keys():
-                print('Key: ', i, ' : ', patients_codes['boolean'][i])
-                
-    else:
-        if column_name not in patients_codes.keys():
-            print('ERROR: Column name not in the data base, please check')
+    database = {'confirmed'   : '',
+                'suspicious'  : '',
+                'negatives'   : '',
+                'deaths'      : '',
+                'patients'    : ''}
+
+    @classmethod
+    def update_confirmed(cls,databases_dir):
+        cls.database  = databases_dir
+
+    def __init__(self,state):
+        if state.lower() in ['national','nacional','all','country']:
+            self.state = 'Nacional'
+        elif state.lower() in ['cdmx', 'distritofederal', 'df', 'ciudad de mexico']:
+            self.state = 'DISTRITO FEDERAL'
+        elif state.upper() not in cdns_states:
+            print_state_names()
             return
+        else:
+            self.state = state.upper()
+        self.state_code = inverse_dict_for_name_states[self.state]
+
+    def discrete(self,data_type):
+        data =  pd.read_csv(Covid.database[data_type], encoding='ANSI')
         
-        if key:
-            return patients_codes[column_name][key]
-         
-        else:
-            print('KEYS for ', column_name.upper(),':')
-            for i in patients_codes[column_name].keys():
-                print('Key: ', i, ' : ', patients_codes[column_name][i])
+        return data.loc[data['nombre'] == self.state].values[0][3:]
+        
+    def cummulative(self,data_type):
+        data =  pd.read_csv(Covid.database[data_type], encoding='ANSI')
 
-def get_discrete(name,raw_data):
-    if name == 'National':
-        name = 'Nacional'
-    return raw_data.loc[raw_data['nombre'] == name].values[0][3:]
-
-def get_cummulative(name,raw_data):
-    if name == 'National':
-        name = 'Nacional'
-    cummulative = []
-    raw = raw_data.loc[raw_data['nombre'] == name]
+        cummulative = []
+        raw = data.loc[data['nombre'] == self.state]
+        
+        for i in raw.values[0][3:]:
+            if len(cummulative) == 0:
+                cummulative.append(i)
+            else:
+                cummulative.append(i+cummulative[-1])
+        return cummulative 
     
-    for i in raw.values[0][3:]:
-        if len(cummulative) == 0:
-            cummulative.append(i)
+    def active(self,window=14):
+               
+        if self.state == 'Nacional':
+            data = pd.read_csv(Covid.database['patients'], encoding='ANSI')
+            data = change_df_names(data)
         else:
-            cummulative.append(i+cummulative[-1])
-    return cummulative
+            data = pd.read_csv(Covid.database['patients'], encoding='ANSI')
+            data = change_df_names(data)
+            data = data[data['lives_at'] == self.state_code]
+        
+        data = data[data['result']==1]
+        data['onset_symptoms'] = pd.to_datetime(data['onset_symptoms'])
+        
+        set_dates = set(data['onset_symptoms'])
+        timeline= pd.date_range(start=min(set_dates), end = data['Updated_at'].iloc[0])
+        result = {key:0 for key in timeline}
+        
+        for ind, day_active in enumerate(data['onset_symptoms']):
+            for _ in range(window):
+                if day_active not in timeline:
+                    break
+                elif data['day_of_death'].iloc[ind] != '9999-99-99' and day_active > pd.to_datetime(data['day_of_death'].iloc[ind]):
+                    break
+                else:
+                    result[day_active] +=1
+                    day_active = day_active + timedelta(days=1)
+        
+        new_data = pd.DataFrame()
+        new_data['actives'] = result.values()
+        new_data['dates']   = result.keys()
+        new_data = new_data.set_index('dates',drop=True)
+        
+        return new_data
+
+
+
+
+
+
+
+def plt_actives(data,names,trim=0):
+    import matplotlib.pyplot as plt
+    plt.close('all')
+    plt.style.use('seaborn-whitegrid')
+    plt.rcParams["figure.figsize"] = (15,7)
+    
+    if type(data) == pd.core.frame.DataFrame:
+        plt.plot([str(x)[5:11] for x in data.index],data['actives'],label=names,color ='b')
+        plt.scatter([str(x)[5:11] for x in data.index][-1],data.actives[-1],color='b')
+        plt.text([str(x)[5:11] for x in data.index][-1],data.actives[-1],str(data.actives[-1]) , fontsize=14 ,color='black')
+    else:
+        
+        first_day = min([min(x.index) for x in data])
+        last_day = max([max(x.index) for x in data])
+
+        new_index = pd.date_range(start=first_day, end=last_day)
+
+        for ind, dataframe in enumerate(data):
+            if len(dataframe) != len(new_index):
+                plt.plot([str(x)[5:11] for x in new_index],[0]*(len(new_index)-len(dataframe))+list(dataframe['actives']),label=names[ind])
+                
+            else:
+                plt.plot([str(x)[5:11] for x in new_index],dataframe['actives'],label=names[ind])
+            plt.scatter([str(x)[5:11] for x in new_index][-1],dataframe.actives[-1])
+            plt.text([str(x)[5:11] for x in new_index][-1],dataframe.actives[-1],str(dataframe.actives[-1]) , fontsize=14,color='black')
+    
+    plt.xticks(rotation=90, fontsize=12)
+    plt.xlim(trim,)
+    plt.legend(fontsize=14)
+    plt.show()
+
+
 
 def get_max_to_min(raw_data, include_national = False, reverse = False, patient_data = False):
+
     dic = {}
     
     if patient_data == False:
@@ -224,7 +195,6 @@ def cohens_d(data1,data2):
         
     return numerator / denominator
 
-
 def get_illness_proportions(data):
     from collections import OrderedDict
     result = {}
@@ -257,50 +227,3 @@ def get_active_database(raw_data,state,window):
     infection_window = pd.to_datetime(datetime.today() - timedelta(days=window))
     data = data[data['onset_symptoms']>infection_window]
     return data
-
-def get_cummulative_actives(raw_data,state,window):
-    import pandas as pd
-    from datetime import datetime, timedelta
-    
-    if state in ['ESTADOS UNIDOS MEXICANOS', 'NATIONAL', 'National',' Nacional']:
-        data = raw_data
-    else:
-        
-        try:
-            state_code = inverse_dict_for_name_states[state]
-        except:
-            print('###########')
-            print('ERROR, the state name is not in the database please check again')
-            print('List of state names available: ')
-            print('###########')
-            print(inverse_dict_for_name_states.keys())
-            return
-        data = raw_data[raw_data['lives_at'] == state_code]
-    
-    
-    data = data[data['result']!=2]
-    dates = data['onset_symptoms']
-    dates = pd.to_datetime(dates)
-    data = data.drop('onset_symptoms',axis = 1)
-    data['onset_symptoms'] = dates
-    
-    set_dates = set(dates)
-    timeline= pd.date_range(start=min(set_dates), end =data['Updated_at'].iloc[0])
-    result = {key:0 for key in timeline}
-    
-    for ind, day_active in enumerate(data['onset_symptoms']):
-        for _ in range(14):
-            if day_active not in timeline:
-                continue
-            elif day_active == data['day_of_death'].iloc[ind]:
-                continue
-            else:
-                result[day_active] +=1
-                day_active = day_active + timedelta(days=1)
-    
-    new_data = pd.DataFrame()
-    new_data['actives']=result.values()
-    new_data['dates'] = result.keys()
-    new_data = new_data.set_index('dates',drop=True)
-    
-    return new_data
