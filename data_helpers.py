@@ -1,7 +1,10 @@
 import pandas as pd
 import numpy as numpy
+import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
+from collections import OrderedDict
 from constants import *
+plt.style.use('seaborn-whitegrid')
 
 class Covid:
     
@@ -11,10 +14,7 @@ class Covid:
                 'deaths'      : '',
                 'patients'    : ''}
 
-    @classmethod
-    def update_confirmed(cls,databases_dir):
-        cls.database  = databases_dir
-
+    
     def __init__(self,state):
         if state.lower() in ['national','nacional','all','country']:
             self.state = 'Nacional'
@@ -31,7 +31,7 @@ class Covid:
         data =  pd.read_csv(Covid.database[data_type], encoding='ANSI')
         
         return data.loc[data['nombre'] == self.state].values[0][3:]
-        
+    
     def cummulative(self,data_type):
         data =  pd.read_csv(Covid.database[data_type], encoding='ANSI')
 
@@ -45,7 +45,7 @@ class Covid:
                 cummulative.append(i+cummulative[-1])
         return cummulative 
     
-    def active(self,window=14):
+    def actives(self,window=14):
                
         if self.state == 'Nacional':
             data = pd.read_csv(Covid.database['patients'], encoding='ANSI')
@@ -79,77 +79,181 @@ class Covid:
         
         return new_data
 
+    def patients(self):
+        data = pd.read_csv(Covid.database['patients'], encoding='ANSI')
+        if self.state == 'Nacional':
+            return change_df_names(data)
+        else:
+            data = change_df_names(data)
+            return data[data['lives_at']==self.state]
 
+    def population(self):
+        data = pd.read_csv(Covid.database['confirmed'])
+        return data[data['nombre']==self.state].poblacion
 
-
-
-
-
-def plt_actives(data,names,trim=0):
-    import matplotlib.pyplot as plt
-    plt.close('all')
-    plt.style.use('seaborn-whitegrid')
-    plt.rcParams["figure.figsize"] = (15,7)
-    
-    if type(data) == pd.core.frame.DataFrame:
-        plt.plot([str(x)[5:11] for x in data.index],data['actives'],label=names,color ='b')
-        plt.scatter([str(x)[5:11] for x in data.index][-1],data.actives[-1],color='b')
-        plt.text([str(x)[5:11] for x in data.index][-1],data.actives[-1],str(data.actives[-1]) , fontsize=14 ,color='black')
-    else:
+    @staticmethod
+    def cohens_d(data1,data2):
+        from numpy import mean, var, sqrt
+        mean1 = mean(data1)
+        mean2 = mean(data2)
+        var1  = var(data1)
+        var2  = var(data2)
+            
+        numerator = mean1 - mean2
         
-        first_day = min([min(x.index) for x in data])
-        last_day = max([max(x.index) for x in data])
+        len1 = len(data1)-1
+        len2 = len(data2)-1
+        
+        total_var = (len1*var1) + (len2*var2)
+        total_len = len1 + len2
+        
+        denominator = sqrt(total_var / total_len)
+            
+        return numerator / denominator
 
-        new_index = pd.date_range(start=first_day, end=last_day)
+    @staticmethod
+    def plot_actives(data,names,trim=0):
+        plt.close('all')
+        plt.rcParams["figure.figsize"] = (15,7)
+        
+        if type(data) == pd.core.frame.DataFrame:
+            new_index = pd.date_range(start=data.index[0], end=data.index[-1])
+            
+            plt.plot([str(x)[5:11] for x in new_index],data['actives'],label=names)
+            plt.scatter(list(range(0,len(data.index)))[-1],data['actives'].iloc[-1])
+            plt.text(list(range(0,len(data.index)))[-1],data['actives'].iloc[-1],str(data['actives'].iloc[-1]))
+            
+        else:
+            
+            first_day = min([min(x.index) for x in data])
+            last_day = max([max(x.index) for x in data])
 
-        for ind, dataframe in enumerate(data):
-            if len(dataframe) != len(new_index):
-                plt.plot([str(x)[5:11] for x in new_index],[0]*(len(new_index)-len(dataframe))+list(dataframe['actives']),label=names[ind])
+            new_index = pd.date_range(start=first_day, end=last_day)
+
+            for ind, dataframe in enumerate(data):
+                if len(dataframe) != len(new_index):
+                    plt.plot([str(x)[5:11] for x in new_index],[0]*(len(new_index)-len(dataframe))+list(dataframe['actives']),label=names[ind])
+                    
+                else:
+                    plt.plot([str(x)[5:11] for x in new_index],dataframe['actives'],label=names[ind])
+                plt.scatter(list(range(0,len(new_index)))[-1],dataframe['actives'].iloc[-1])
+                plt.text(list(range(0,len(new_index)))[-1],dataframe['actives'].iloc[-1],str(dataframe['actives'].iloc[-1]))
+
+        plt.xticks(rotation=90, fontsize=12)
+        plt.xlim(trim,)
+        plt.legend(fontsize=14,loc=2)
+        plt.show()
+    
+    @staticmethod
+    def plot_cummulative(data, names = None, title = None, trim=None):
+        plt.close('all')
+        plt.rcParams["figure.figsize"] = (15,7)
+        
+        if type(data[0]) == int:
+            index = pd.date_range(start=pd.to_datetime(pd.read_csv(Covid.database['confirmed']).columns[-1]) - timedelta(days=len(data)),periods = len(data),freq='D')
+            plt.plot(index, data, label = names, alpha = 0.6)
+            plt.scatter(index[-1],data[-1])
+            plt.text(index[-1], data[-1],str(int(data[-1])) , fontsize=14)
+        else:
+            
+            max_len = max([len(x) for x in data])
+            index = pd.date_range(start=pd.to_datetime(pd.read_csv(Covid.database['confirmed']).columns[-1]) - timedelta(days=max_len),
+                                periods=max_len, freq='D')
+            
+            for ind,i in enumerate(data):
+                if len(i) != max_len:
+                    i = [0]*(max_len-len(i))+i
+
+                plt.plot(index,i,label=names[ind])
+                plt.scatter(index[-1],i[-1])
+                plt.text(index[-1], i[-1],str(int(i[-1])) , fontsize=14)
                 
-            else:
-                plt.plot([str(x)[5:11] for x in new_index],dataframe['actives'],label=names[ind])
-            plt.scatter([str(x)[5:11] for x in new_index][-1],dataframe.actives[-1])
-            plt.text([str(x)[5:11] for x in new_index][-1],dataframe.actives[-1],str(dataframe.actives[-1]) , fontsize=14,color='black')
-    
-    plt.xticks(rotation=90, fontsize=12)
-    plt.xlim(trim,)
-    plt.legend(fontsize=14)
-    plt.show()
 
+        plt.xticks(rotation=90,fontsize=13)
+        plt.title(title, fontsize=14)
+        
+        if trim:
+            plt.xlim(index[0] + timedelta(days=trim),)
+            
+        plt.legend(loc='upper left',fontsize=14)
+        plt.show()
 
+    @staticmethod
+    def plot_discrete(data, names = None, title=None, trim=None):
+        plt.close('all')
+        plt.rcParams["figure.figsize"] = (15,6)
+        
+        if type(data) == np.ndarray:
+            index = pd.date_range(start=pd.to_datetime(pd.read_csv(Covid.database['confirmed']).columns[-1]) - timedelta(days=len(data)),periods = len(data),freq='D')
+                    
+            plt.bar(index,data, label = names, alpha = 0.6)
+            
+        else:
+            
+            max_len = max([len(x) for x in data])
+            index = pd.date_range(start=pd.to_datetime(pd.read_csv(Covid.database['confirmed']).columns[-1]) - timedelta(days=len(data)), periods=max_len, freq='D')
 
-def get_max_to_min(raw_data, include_national = False, reverse = False, patient_data = False):
+            for ind, i in enumerate(data):
+                if len(i) < max_len:
+                    i = [0]*(max_len-len(i))+list(i)
 
-    dic = {}
-    
-    if patient_data == False:
+                plt.bar(index,i, label = names[ind],alpha = 0.5)
+        
+        plt.title(title, fontsize=14)
+        plt.legend(loc='upper left',fontsize=12)
+        plt.xticks(rotation=90)
+        if trim:
+            plt.xlim(index[0] + timedelta(days=trim),)
+        plt.show()
 
+    @classmethod
+    def update_data(cls,databases_dir):
+        cls.database  = databases_dir
+
+    @classmethod
+    def get_max_to_min(cls,dtype, include_national = False, max_to_min = True,window=14):
+                
+        if dtype not in ['confirmed','negatives','deaths','suspicious','actives']:
+            dtype_error(dtype)
+            return
         if include_national:
-            names = raw_data.nombre
+            names = cdns_states
         else:
-            names = [x for x in raw_data.nombre if x != 'Nacional']
-    else:
-        names = [patients_codes['states'][x] for x in set(raw_data.treated_at)]
-
-    for name in names:
+            names = [x for x in cdns_states if x != 'Nacional']
         
-        if patient_data:
-            result = list(raw_data['treated_at']).count(inverse_dict_for_name_states[name])
+        if dtype in ['confirmed','negatives','deaths','suspicious']:
+            dictionary = {x:sum(cls(x).discrete(dtype)) for x in names}
+            return OrderedDict(sorted(dictionary.items(), key=lambda t: t[1],reverse=max_to_min))
         else:
-            result = raw_data.loc[raw_data['nombre'] == name].values[0][3:].sum()
-                
-        if result in dic.keys():
-            dic[result+0.01] = name
+            dictionary = {x:sum(cls(x).actives(window=window).iloc[-1]) for x in names}
+            return OrderedDict(sorted(dictionary.items(), key=lambda t: t[1],reverse=max_to_min))
+
+    @classmethod
+    def plot_max_to_min(cls,dtype,n=None,title=None, trim=None, include_national = False, max_to_min = True):
+        if dtype not in ['confirmed','negatives','deaths','suspicious','actives']:
+            dtype_error(dtype)
+            return
+        if include_national:
+            names = cdns_states
         else:
-            dic[result] = name
-    if reverse:
-        dic_sort = sorted(dic.keys(),reverse=False)
-    else:
-        dic_sort = sorted(dic.keys(),reverse=True)
+            names = [x for x in cdns_states if x != 'Nacional']
+        
+        if dtype == 'actives':
+            data = {key:Covid(key).actives() for key in names}
+            data = OrderedDict(sorted(data.items(), key=lambda t: t[1].actives.iloc[-1],reverse=max_to_min))
+            names = list(data.keys())[:n]
 
-    true_dic = {dic[key]:key for key in dic.keys()}
+            plt_actives([data[name] for name in names],names,trim=trim)
 
-    return [dic[x] for x in dic_sort],true_dic
+
+        else:
+            data = {key:Covid(key).cummulative(dtype) for key in names}
+            data = OrderedDict(sorted(data.items(), key=lambda t: t[1][-1],reverse=True))
+            names = list(data.keys())[:n]
+
+            plot_cummulative([data[name] for name in names],names,trim=trim)
+
+
 
 def get_age_bins(data,bin_size):
     
@@ -176,24 +280,7 @@ def get_proportions(death_histogram,patients_histogram):
             result[i]=0
     return result
 
-def cohens_d(data1,data2):
-    from numpy import mean, var, sqrt
-    mean1 = mean(data1)
-    mean2 = mean(data2)
-    var1  = var(data1)
-    var2  = var(data2)
-        
-    numerator = mean1 - mean2
-    
-    len1 = len(data1)-1
-    len2 = len(data2)-1
-    
-    total_var = (len1*var1) + (len2*var2)
-    total_len = len1 + len2
-    
-    denominator = sqrt(total_var / total_len)
-        
-    return numerator / denominator
+
 
 def get_illness_proportions(data):
     from collections import OrderedDict

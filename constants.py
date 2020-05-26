@@ -172,6 +172,7 @@ def change_df_names(patient_data):
     return patient_data
 
 def patient_data_keys(column_name,key = None):
+
     """ Takes the name of a column and decodes the keys from the database: 
     '200XXXCOVID19MEXICO.csv' """
     
@@ -210,3 +211,12 @@ def patient_data_keys(column_name,key = None):
             print('KEYS for ', column_name.upper(),':')
             for i in patients_codes[column_name].keys():
                 print('Key: ', i, ' : ', patients_codes[column_name][i])
+
+def dtype_error(dtype):
+    
+    print('#######')
+    print('ERROR: ',dtype,'is not a data type accepted')
+    print('Available dtypes: ')
+    print('#######')
+    for key in ['confirmed','negatives','deaths','suspicious','actives']:
+        print(key)
