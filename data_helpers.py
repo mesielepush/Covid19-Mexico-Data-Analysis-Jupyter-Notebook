@@ -79,14 +79,8 @@ class Covid:
         
         return new_data
 
-    class patients(self,state):
-        raw_data = change_df_names(pd.read_csv(Covid.database['patients'], encoding='ANSI'))
-
-        def __init__(self):
-            if self.state == 'Nacional':
-                self.data = patients.raw_data
-            else:
-                self.data = patients.raw_data[patients.raw_data['lives_at']==self.state_code]
+    def patients(self):
+        return self.Patients(self,change_df_names(pd.read_csv(Covid.database['patients'], encoding='ANSI')))
 
     def population(self):
         data = pd.read_csv(Covid.database['confirmed'])
@@ -254,7 +248,18 @@ class Covid:
 
             plot_cummulative([data[name] for name in names],names,trim=trim)
 
-
+    class Patients:
+        
+        def __init__(self,ob,data):
+            self.state = ob.state
+            self.state_code = ob.state_code
+            if self.state == 'Nacional':
+                 self.data = data
+            else:
+                 self.data = data[data['lives_at'] == self.state_code]
+        
+        def women(self):
+            self.data = self.data[self.data['sex']==1]
 
 def get_age_bins(data,bin_size):
     
