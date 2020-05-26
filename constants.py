@@ -134,7 +134,7 @@ def print_state_names():
         print(f':: {name} ::')
 
 def change_df_names(patient_data):
-
+    patient_data = patient_data.drop('MUNICIPIO_RES',axis=1)
     patient_data = patient_data.rename(columns={"FECHA_ACTUALIZACION":"Updated_at",
                                              "ID_REGISTRO": "id",
                                              "ORIGEN":"origin",
@@ -169,6 +169,7 @@ def change_df_names(patient_data):
                                              "PAIS_NACIONALIDAD":"nationality",
                                              "PAIS_ORIGEN": "country_of_origin",
                                              "UCI":"icu"})
+
     return patient_data
 
 def patient_data_keys(column_name,key = None):

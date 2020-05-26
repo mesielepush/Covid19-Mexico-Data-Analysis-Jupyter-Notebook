@@ -79,17 +79,18 @@ class Covid:
         
         return new_data
 
-    def patients(self):
-        data = pd.read_csv(Covid.database['patients'], encoding='ANSI')
-        if self.state == 'Nacional':
-            return change_df_names(data)
-        else:
-            data = change_df_names(data)
-            return data[data['lives_at']==self.state]
+    class patients(self,state):
+        raw_data = change_df_names(pd.read_csv(Covid.database['patients'], encoding='ANSI'))
+
+        def __init__(self):
+            if self.state == 'Nacional':
+                self.data = patients.raw_data
+            else:
+                self.data = patients.raw_data[patients.raw_data['lives_at']==self.state_code]
 
     def population(self):
         data = pd.read_csv(Covid.database['confirmed'])
-        return data[data['nombre']==self.state].poblacion
+        return data[data['nombre']==self.state].poblacion.values[0]
 
     @staticmethod
     def cohens_d(data1,data2):
