@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as numpy
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -257,26 +256,83 @@ class Covid:
                  self.data = data
             else:
                  self.data = data[data['lives_at'] == self.state_code]
-        def age(self,start,end):
-            sub_data = Covid(self.state).patients()
-            sub_data.data = sub_data.data[sub_data.data['age'] in range(start,end)]
-            return sub_data
-        def women(self):
-            sub_data = Covid(self.state).patients()
-            sub_data.data = sub_data.data[sub_data.data['sex']==1]
-            return sub_data
-        
-        def deaths(self):
-            sub_data = Covid(self.state).patients()
-            sub_data = sub_data[sub_data['result']==1]
-            sub_data = sub_data[sub_data['day_of_death']!='9999-99-99']
-            return sub_data
-        
-        def men(self):    
-            sub_data = Covid(self.state).patients()
-            sub_data.data = sub_data.data[sub_data.data['sex']==2]
-            return sub_data
+            
 
+        def describe(self):
+            binary = pd.DataFrame()
+            row_name = ['patients']
+            row_value = ['--']
+            row_n = [len(self.data)]
+
+            if 'result' in self.data.keys():
+                row_name.append('covid19+')
+                row_value.append( round((list(self.data['result']).count(1) / len(self.data['result'])) *100,2) )
+                row_n.append(list(self.data['result']).count(1))
+
+                row_name.append('covid19-')
+                row_value.append( round((list(self.data['result']).count(2) / len(self.data['result'])) *100,2) )
+                row_n.append(list(self.data['result']).count(2))
+
+
+                row_name.append('wainting for covid test')
+                row_value.append( round((list(self.data['result']).count(3) / len(self.data['result'])) *100,2) )
+                row_n.append(list(self.data['result']).count(3))
+
+            if 'sex' in self.data.keys():
+
+                row_name.append('women')
+                row_value.append( round((list(self.data['sex']).count(1) / len(self.data['sex'])) *100,2) )
+                row_n.append(list(self.data['sex']).count(1))
+
+                row_name.append('men')
+                row_value.append( round((list(self.data['sex']).count(2) / len(self.data['sex'])) *100,2) )
+                row_n.append(list(self.data['sex']).count(2))
+
+            if 'day_of_death' in self.data.keys():
+                row_name.append('deaths') 
+                row_value.append(round((len([x for x in self.data['day_of_death'] if x != '9999-99-99'])/len(self.data['day_of_death']))*100,2) )
+                row_n.append(len([x for x in self.data['day_of_death'] if x != '9999-99-99']))
+
+            for column in self.data.keys():
+                
+                if column in ['intubated', 'pneumonia','pregnancy', 'speaks_dialect',
+                            'diabetes', 'copd', 'asthma','immunosuppression', 'hypertension',
+                            'another_illness','cardiovascular', 'obesity', 'kidney_disease', 'smoker',
+                            'close_to_infected','icu']:
+                    row_name.append(column)
+                    row_value.append( round((list(self.data[column]).count(1) / len(self.data[column])) *100,2) )
+                    row_n.append(list(self.data[column]).count(1))
+
+                    
+            binary['features'] = row_name
+            binary['frequency']  = row_n
+            binary['percentage of positives'] = row_value
+
+
+            return binary
+
+
+        def age(self,start,end):
+            self.data = self.data[(self.data.age >=start) & (self.data.age <= end) ]
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
+        def women(self):
+            self.data = self.data[self.data['sex']==1]
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
+        def deaths(self):
+            self.data = self.data[self.data['result']==1]
+            self.data = self.data[self.data['day_of_death']!='9999-99-99']
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
+        def men(self):    
+            self.data = self.data[self.data['sex']==2]
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
 
 
 def get_age_bins(data,bin_size):
