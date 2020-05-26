@@ -311,29 +311,52 @@ class Covid:
 
             return binary
 
-
         def age(self,start,end):
             self.data = self.data[(self.data.age >=start) & (self.data.age <= end) ]
             if len(self.data) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
             return self
+        
         def women(self):
             self.data = self.data[self.data['sex']==1]
             if len(self.data) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
             return self
+        
         def deaths(self):
             self.data = self.data[self.data['result']==1]
             self.data = self.data[self.data['day_of_death']!='9999-99-99']
             if len(self.data) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
             return self
+        
         def men(self):    
             self.data = self.data[self.data['sex']==2]
             if len(self.data) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
             return self
 
+        def alive(self):
+            self.data = self.data[self.data['result']==1]
+            self.data = self.data[self.data['day_of_death']=='9999-99-99']
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
+
+        def plot_sectors(self):
+
+            sector_bins = {key:list(self.data['sector']).count(key) for key in set(self.data['sector'])}
+
+            plt.close('all')
+            plt.rcParams["figure.figsize"] = (15,7)
+            plt.bar(['IMSS','SSA'],[sector_bins[4],sector_bins[12]])
+            plt.text('IMSS', sector_bins[4] + 15, str(round((sector_bins[4]/len(a.data['sector'])*100),2))+'%', color='black',fontsize=20)
+            plt.text('SSA', sector_bins[12] + 15, str(round((sector_bins[12]/len(a.data['sector'])*100),2))+'%', color='black',fontsize=20)
+
+            plt.title('Sectors with more patients',fontsize=25)
+            plt.ylabel('Number of Patients', fontsize=18)
+            plt.xticks(fontsize=25, fontweight='bold')
+            plt.show()
 
 def get_age_bins(data,bin_size):
     
