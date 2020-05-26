@@ -257,9 +257,27 @@ class Covid:
                  self.data = data
             else:
                  self.data = data[data['lives_at'] == self.state_code]
-        
+        def age(self,start,end):
+            sub_data = Covid(self.state).patients()
+            sub_data.data = sub_data.data[sub_data.data['age'] in range(start,end)]
+            return sub_data
         def women(self):
-            self.data = self.data[self.data['sex']==1]
+            sub_data = Covid(self.state).patients()
+            sub_data.data = sub_data.data[sub_data.data['sex']==1]
+            return sub_data
+        
+        def deaths(self):
+            sub_data = Covid(self.state).patients()
+            sub_data = sub_data[sub_data['result']==1]
+            sub_data = sub_data[sub_data['day_of_death']!='9999-99-99']
+            return sub_data
+        
+        def men(self):    
+            sub_data = Covid(self.state).patients()
+            sub_data.data = sub_data.data[sub_data.data['sex']==2]
+            return sub_data
+
+
 
 def get_age_bins(data,bin_size):
     
