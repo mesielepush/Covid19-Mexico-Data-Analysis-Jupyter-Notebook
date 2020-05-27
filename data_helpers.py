@@ -404,18 +404,20 @@ class Covid:
         def plot_illness(self):
             pass
         @classmethod
-        def simple_regressor(cls):
+        def xgboost_regressor(cls):
             from xgboost import XGBRegressor
-            from xgboost import plot_importance
-            XGBRe_model = XGBRegressor()
-            # fit the model
-            XGBRe_model.fit(X_train, y_train)
-            # get importance
-            importance = XGBRe_model.feature_importances_
-            # summarize feature importance
-            for i,v in enumerate(importance):
-                print('Feature: %0d, Score: %.5f' % (i,v))
-            # plot feature importance
-            plt.bar([x for x in range(len(importance))], importance)
-            plt.xticks([x for x in range(len(importance))],X.keys(),rotation=90, fontsize=16)
-            plt.show()
+            from sklearn.model_selection import train_test_split
+
+            deaths = Covid('all').patients().deaths()
+            alives = Covid('all').patients().alive()
+
+            dead = deaths.data
+            alive = alives.data
+            XGBreg_model = XGBRegressor(base_score=0.89, booster='gbtree', colsample_bylevel=1,
+                                        colsample_bynode=1, colsample_bytree=1, gamma=0.1,
+                                        learning_rate=0.1, max_delta_step=0, max_depth=30,
+                                        min_child_weight=1, missing=None, n_estimators=100, n_jobs=1,
+                                        nthread=2, objective='binary:logistic', random_state=0,
+                                        reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
+                                        silent=None, subsample=1, verbosity=1)
+            XGBreg_model.fit(X_train, y_train)
