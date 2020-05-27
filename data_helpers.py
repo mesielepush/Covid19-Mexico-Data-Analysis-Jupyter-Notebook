@@ -343,6 +343,14 @@ class Covid:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
             return self
 
+        def illness(self):
+
+            self.data = self.data[['pneumonia','diabetes', 'copd', 'asthma','intubated',
+                               'immunosuppression', 'hypertension',
+                               'cardiovascular', 'obesity', 'kidney_disease',
+                               'smoker']]
+            return self
+
         def plot_sectors(self):
 
             plt.close('all')
@@ -393,64 +401,21 @@ class Covid:
 
             plt.show()
 
-        def plot_sector_deathrate(self):
+        def plot_illness(self):
             pass
-# def get_age_bins(data,bin_size):
-    
-#     current = 0
-#     bin_size = bin_size
-#     iterations = int(max(data['age'])/bin_size)
-#     result = {}
-
-#     while iterations >= 0:
-#         result[f'{current}-{current+(bin_size-1)}'] = 0
-
-#         for i in range(current,current+bin_size):
-#             result[f'{current}-{current+(bin_size-1)}'] += list(data['age']).count(i)
-#         current += bin_size
-#         iterations -= 1
-#     return result
-
-# def get_proportions(death_histogram,patients_histogram):
-#     result = {}
-#     for i in patients_histogram.keys():
-#         try:
-#             result[i]= (death_histogram[i]/patients_histogram[i])*100
-#         except:
-#             result[i]=0
-#     return result
-
-
-
-# def get_illness_proportions(data):
-#     from collections import OrderedDict
-#     result = {}
-#     for i in data.keys():
-#         result[i] = list(data[i].values).count(1)/len(data[i])*100
-#     result = OrderedDict(sorted(result.items(), key=lambda t: t[1],reverse=False))   
-#     return result
-
-# def get_active_database(raw_data,state,window):
-#     import pandas as pd
-#     from datetime import datetime, timedelta
-#     try:
-#         state_code = inverse_dict_for_name_states[state]
-#     except:
-#         print('ERROR, the state name is not in the database please check again')
-#         print('List of state names available: ')
-#         print('###########')
-#         print(inverse_dict_for_name_states.keys())
-#         return
-#     if state == 'ESTADOS UNIDOS MEXICANOS':
-#         data = raw_data
-#     else:
-#         data = raw_data[raw_data['lives_at'] == state_code]
-    
-#     data = data[data['result']!=2]
-#     dates = data['onset_symptoms']
-#     dates = pd.to_datetime(dates)
-#     data = data.drop('onset_symptoms',axis = 1)
-#     data['onset_symptoms'] = dates
-#     infection_window = pd.to_datetime(datetime.today() - timedelta(days=window))
-#     data = data[data['onset_symptoms']>infection_window]
-#     return data
+        @classmethod
+        def simple_regressor(cls):
+            from xgboost import XGBRegressor
+            from xgboost import plot_importance
+            XGBRe_model = XGBRegressor()
+            # fit the model
+            XGBRe_model.fit(X_train, y_train)
+            # get importance
+            importance = XGBRe_model.feature_importances_
+            # summarize feature importance
+            for i,v in enumerate(importance):
+                print('Feature: %0d, Score: %.5f' % (i,v))
+            # plot feature importance
+            plt.bar([x for x in range(len(importance))], importance)
+            plt.xticks([x for x in range(len(importance))],X.keys(),rotation=90, fontsize=16)
+            plt.show()
