@@ -237,7 +237,7 @@ class Covid:
             data = OrderedDict(sorted(data.items(), key=lambda t: t[1].actives.iloc[-1],reverse=max_to_min))
             names = list(data.keys())[:n]
 
-            plt_actives([data[name] for name in names],names,trim=trim)
+            Covid.plot_actives([data[name] for name in names],names,trim=trim)
 
 
         else:
@@ -245,7 +245,7 @@ class Covid:
             data = OrderedDict(sorted(data.items(), key=lambda t: t[1][-1],reverse=True))
             names = list(data.keys())[:n]
 
-            plot_cummulative([data[name] for name in names],names,trim=trim)
+            Covid.plot_cummulative([data[name] for name in names],names,trim=trim)
 
     class Patients:
         
@@ -345,75 +345,112 @@ class Covid:
 
         def plot_sectors(self):
 
-            sector_bins = {key:list(self.data['sector']).count(key) for key in set(self.data['sector'])}
-
             plt.close('all')
-            plt.rcParams["figure.figsize"] = (15,7)
-            plt.bar(['IMSS','SSA'],[sector_bins[4],sector_bins[12]])
-            plt.text('IMSS', sector_bins[4] + 15, str(round((sector_bins[4]/len(a.data['sector'])*100),2))+'%', color='black',fontsize=20)
-            plt.text('SSA', sector_bins[12] + 15, str(round((sector_bins[12]/len(a.data['sector'])*100),2))+'%', color='black',fontsize=20)
+            plt.rcParams["figure.figsize"] = (15,25)
 
-            plt.title('Sectors with more patients',fontsize=25)
-            plt.ylabel('Number of Patients', fontsize=18)
-            plt.xticks(fontsize=25, fontweight='bold')
+            sector_bins = {key:list(self.data['sector']).count(key) for key in set(self.data['sector'])}
+            ordered = OrderedDict(sorted(sector_bins.items(), key=lambda t: t[1],reverse=True))
+            top = list(ordered.keys())[:2]
+            others= list(ordered.keys())[2:]
+
+
+            fig, axs = plt.subplots(3)
+            plt.subplots_adjust(left=None, bottom=None, right=None, top=0.8, wspace=0.5, hspace=0.6)
+
+            axs[0].bar([patient_data_keys('sector',x) for x in top],[sector_bins[x] for x in top], alpha=0.5)
+            axs[0].text(-.05, sector_bins[top[0]] + (sector_bins[top[0]]*0.06), str(round((sector_bins[top[0]]/len(self.data['sector'])*100),2))+'%', color='black',fontsize=20)
+            axs[0].text(.95, sector_bins[top[1]] + (sector_bins[top[1]]*0.06), str(round((sector_bins[top[1]]/len(self.data['sector'])*100),2))+'%', color='black',fontsize=20)
+            axs[0].set_title('Sectors with more patients',fontsize=20, pad=30)
+            axs[0].set_ylim(0,(max(sector_bins[top[0]],sector_bins[top[1]])+ 1000))
+            axs[0].set_ylabel('Number of Patients', fontsize=18)
+
+            axs[1].bar([patient_data_keys('sector',x) for x in others],[sector_bins[x] for x in others],alpha = 0.6)
+            axs[1].set_title('Other sectors',fontsize=20, pad=30)
+            axs[1].set_ylabel('Number of Patients', fontsize=18)
+            
+            for ind,sector in enumerate(others):
+                axs[1].text(ind-0.3, sector_bins[sector] + (sector_bins[sector]*0.05), str(round((sector_bins[sector]/len(self.data['sector'])*100),2))+'%', color='black',fontsize=16)
+
+            proportions = []
+            for sector in ordered.keys():
+                sector_total = len(self.data[(self.data.day_of_death != '9999-99-99') & (self.data.sector == sector) ])
+                if sector_total == 0:
+                    proportions.append(0)
+                else:
+                    proportions.append(ordered[sector]/sector_total)
+
+            axs[2].bar([patient_data_keys('sector',x) for x in ordered.keys()],proportions,alpha = 0.6, color ='r')
+            axs[2].set_title('Death rate for sector', fontsize=23)
+            axs[2].set_ylabel('Percentage of Patients', fontsize=18)
+            axs[2].set_ylim(0,(max(proportions)+ 10))
+
+            for ind,sector in enumerate(ordered.keys()):
+                axs[2].text(ind-0.3, proportions[ind] +1.5, str(round(proportions[ind],2))+'%', color='black',fontsize=14)
+
+            for ax in fig.axes:
+                plt.sca(ax)
+                plt.xticks(rotation=90,fontsize=16)
+
             plt.show()
 
-def get_age_bins(data,bin_size):
+        def plot_sector_deathrate(self):
+            pass
+# def get_age_bins(data,bin_size):
     
-    current = 0
-    bin_size = bin_size
-    iterations = int(max(data['age'])/bin_size)
-    result = {}
+#     current = 0
+#     bin_size = bin_size
+#     iterations = int(max(data['age'])/bin_size)
+#     result = {}
 
-    while iterations >= 0:
-        result[f'{current}-{current+(bin_size-1)}'] = 0
+#     while iterations >= 0:
+#         result[f'{current}-{current+(bin_size-1)}'] = 0
 
-        for i in range(current,current+bin_size):
-            result[f'{current}-{current+(bin_size-1)}'] += list(data['age']).count(i)
-        current += bin_size
-        iterations -= 1
-    return result
+#         for i in range(current,current+bin_size):
+#             result[f'{current}-{current+(bin_size-1)}'] += list(data['age']).count(i)
+#         current += bin_size
+#         iterations -= 1
+#     return result
 
-def get_proportions(death_histogram,patients_histogram):
-    result = {}
-    for i in patients_histogram.keys():
-        try:
-            result[i]= (death_histogram[i]/patients_histogram[i])*100
-        except:
-            result[i]=0
-    return result
+# def get_proportions(death_histogram,patients_histogram):
+#     result = {}
+#     for i in patients_histogram.keys():
+#         try:
+#             result[i]= (death_histogram[i]/patients_histogram[i])*100
+#         except:
+#             result[i]=0
+#     return result
 
 
 
-def get_illness_proportions(data):
-    from collections import OrderedDict
-    result = {}
-    for i in data.keys():
-        result[i] = list(data[i].values).count(1)/len(data[i])*100
-    result = OrderedDict(sorted(result.items(), key=lambda t: t[1],reverse=False))   
-    return result
+# def get_illness_proportions(data):
+#     from collections import OrderedDict
+#     result = {}
+#     for i in data.keys():
+#         result[i] = list(data[i].values).count(1)/len(data[i])*100
+#     result = OrderedDict(sorted(result.items(), key=lambda t: t[1],reverse=False))   
+#     return result
 
-def get_active_database(raw_data,state,window):
-    import pandas as pd
-    from datetime import datetime, timedelta
-    try:
-        state_code = inverse_dict_for_name_states[state]
-    except:
-        print('ERROR, the state name is not in the database please check again')
-        print('List of state names available: ')
-        print('###########')
-        print(inverse_dict_for_name_states.keys())
-        return
-    if state == 'ESTADOS UNIDOS MEXICANOS':
-        data = raw_data
-    else:
-        data = raw_data[raw_data['lives_at'] == state_code]
+# def get_active_database(raw_data,state,window):
+#     import pandas as pd
+#     from datetime import datetime, timedelta
+#     try:
+#         state_code = inverse_dict_for_name_states[state]
+#     except:
+#         print('ERROR, the state name is not in the database please check again')
+#         print('List of state names available: ')
+#         print('###########')
+#         print(inverse_dict_for_name_states.keys())
+#         return
+#     if state == 'ESTADOS UNIDOS MEXICANOS':
+#         data = raw_data
+#     else:
+#         data = raw_data[raw_data['lives_at'] == state_code]
     
-    data = data[data['result']!=2]
-    dates = data['onset_symptoms']
-    dates = pd.to_datetime(dates)
-    data = data.drop('onset_symptoms',axis = 1)
-    data['onset_symptoms'] = dates
-    infection_window = pd.to_datetime(datetime.today() - timedelta(days=window))
-    data = data[data['onset_symptoms']>infection_window]
-    return data
+#     data = data[data['result']!=2]
+#     dates = data['onset_symptoms']
+#     dates = pd.to_datetime(dates)
+#     data = data.drop('onset_symptoms',axis = 1)
+#     data['onset_symptoms'] = dates
+#     infection_window = pd.to_datetime(datetime.today() - timedelta(days=window))
+#     data = data[data['onset_symptoms']>infection_window]
+#     return data
