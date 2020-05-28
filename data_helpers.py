@@ -205,6 +205,71 @@ class Covid:
             plt.xlim(trim,)
         plt.show()
 
+    @staticmethod
+    def preprocess(state):
+        
+        deaths = Covid(state).patients().deaths()
+        alives = Covid(state).patients().alive()
+
+        dead = deaths.data
+        alive = alives.data
+
+
+        dead = dead[['diabetes', 'copd', 'asthma',
+            'immunosuppression', 'hypertension',
+            'cardiovascular', 'obesity', 'kidney_disease',
+            'smoker','sex','age']]
+        alive = alive[['diabetes', 'copd', 'asthma',
+            'immunosuppression', 'hypertension',
+            'cardiovascular', 'obesity', 'kidney_disease',
+            'smoker','sex','age']]
+
+        dead_sex = dead['sex'].copy()
+        #dead_age = dead['age'].copy()
+
+        #alive_age= alive['age'].copy()
+        alive_sex= alive['sex'].copy()
+
+        # alive_age_normal = alive_age/100
+        # dead_age_normal= dead_age/100
+        # print(len(alive_age_normal))
+        # print(len(dead_age_normal))
+        # alive_age_normal = [1 if x>1 else x for x in alive_age_normal ]
+        # dead_age_normal  = [1 if x>1 else x for x in dead_age_normal ] 
+
+        # print(len(alive_age_normal))
+        # print(len(dead_age_normal))
+
+        dead_sex.replace(99,2,inplace=True)
+        dead_sex.replace(1,0,inplace=True)
+        dead_sex.replace(2,1,inplace=True)
+
+        alive_sex.replace(99,2,inplace=True)
+        alive_sex.replace(1,0,inplace=True)
+        alive_sex.replace(2,1,inplace=True)
+
+
+        dead = dead.replace([97,98,99],2)
+        dead = dead.replace(2,0)
+        alive = alive.replace([97,98,99],2)
+        alive = alive.replace(2,0)
+
+        dead = dead.drop(['sex','age'],axis=1)
+        alive = alive.drop(['sex','age'],axis=1)
+
+        dead['sex']=dead_sex
+        #dead['age']=dead_age_normal
+        alive['sex']=alive_sex
+        #alive['age']=alive_age_normal
+
+        alive['y'] = [0]*len(alive)
+        dead['y'] = [1]*len(dead)
+
+        X = pd.concat([alive,dead])
+        y = X['y']
+        X = X.drop('y',axis=1)
+        return X,y
+    
     @classmethod
     def update_data(cls,databases_dir):
         cls.database  = databases_dir
@@ -261,29 +326,8 @@ class Covid:
         alives = cls('all').patients().alive()
         
         data = [alives.data,deaths.data]
-        X = []
-
-        for ind, base in enumerate(data):
-            base = base[['diabetes', 'copd', 'asthma',
-                        'immunosuppression', 'hypertension',
-                        'cardiovascular', 'obesity', 'kidney_disease',
-                        'smoker','sex','age']]
-            base_sex = base['sex'].copy()
-            base_age = base['age'].copy()
-            base_age_normal = base_age/max(max(data[0]['age']),max(data[1]['age']))
-            base_sex.replace(99,2,inplace=True)
-            base_sex.replace(1,0,inplace=True)
-            base_sex.replace(2,1,inplace=True)
-
-            base = base.replace([97,98,99],2)
-            base = base.replace(2,0)
-            base['sex']=base_sex
-            base['age']=base_age_normal
-            base['y'] = [ind]*len(base)
-            X.append(base)
-        X = pd.concat(X)
-        y = X['y']
-        X = X.drop('y',axis=1)
+        
+        X,y = cls.preprocess(data)
 
         XGBreg_model = XGBRegressor(base_score=1-(len(deaths.data)/(len(deaths.data)+len(alives.data))),
                                     booster='gbtree', colsample_bylevel=1,
@@ -299,49 +343,49 @@ class Covid:
 
     @classmethod
     def predict_patient_dead(cls):
+        pass
+    #     print('################################################################')
+    #     print('This function predicts if a patient is going to die from covid19')
+    #     print('################################################################')
         
-        print('################################################################')
-        print('This function predicts if a patient is going to die from covid19')
-        print('################################################################')
-        
-        print('Checking if there are a model already: ')
-        checking = True
-        while checking is True:
-            try:
-                model = joblib.load('Xboost_model.pkl')
-                print('############')
-                print('There is a model, predicting machine is starting...')
-                print('############')
-                checking = False
-            except:
-                print('############')
-                yes = input('There are no model available, do you wish to train one just now? [y] for yes: ')
-                print('############')
-                if yes == 'y':
-                    print('############')
-                    print('Ok. Predicting machine is starting to train...')
-                    print('############')
-                    model = Covid.xgboost_regressor()
-                    print('Model ready, predicting machine is starting...')
-                    checking = False
-                else:
-                    print('Ok, see you later...')
-                    print('############')
+    #     print('Checking if there are a model already: ')
+    #     checking = True
+    #     while checking is True:
+    #         try:
+    #             model = joblib.load('Xboost_model.pkl')
+    #             print('############')
+    #             print('There is a model, predicting machine is starting...')
+    #             print('############')
+    #             checking = False
+    #         except:
+    #             print('############')
+    #             yes = input('There are no model available, do you wish to train one just now? [y] for yes: ')
+    #             print('############')
+    #             if yes == 'y':
+    #                 print('############')
+    #                 print('Ok. Predicting machine is starting to train...')
+    #                 print('############')
+    #                 model = Covid.xgboost_regressor()
+    #                 print('Model ready, predicting machine is starting...')
+    #                 checking = False
+    #             else:
+    #                 print('Ok, see you later...')
+    #                 print('############')
 
-                    return
-        print('########################')
-        features = pd.DataFrame()
-        for feature in 
+    #                 return
+    #     print('########################')
+    #     features = pd.DataFrame()
+    #     for feature in 
         
 
 
 
         
         
-        ['diabetes', 'copd', 'asthma',
-       'immunosuppression', 'hypertension',
-       'cardiovascular', 'obesity', 'kidney_disease',
-       'smoker','sex','age']
+    #     ['diabetes', 'copd', 'asthma',
+    #    'immunosuppression', 'hypertension',
+    #    'cardiovascular', 'obesity', 'kidney_disease',
+    #    'smoker','sex','age']
     
     class Patients:
         
