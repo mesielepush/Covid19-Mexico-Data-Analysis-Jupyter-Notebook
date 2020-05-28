@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -177,27 +178,31 @@ class Covid:
         plt.close('all')
         plt.rcParams["figure.figsize"] = (15,6)
         
+        today = pd.to_datetime(pd.read_csv(Covid.database['confirmed']).columns[-1])
+        
+        
         if type(data) == np.ndarray:
-            index = pd.date_range(start=pd.to_datetime(pd.read_csv(Covid.database['confirmed']).columns[-1]) - timedelta(days=len(data)),periods = len(data),freq='D')
-                    
-            plt.bar(index,data, label = names, alpha = 0.6)
+            index = pd.date_range(start= (today - timedelta(days=len(data)-1) ), end = today,freq='D')
+            index = [str(x)[5:10] for x in index]
+            plt.bar(index, data, label = names, alpha = 0.6)
             
         else:
-            
-            max_len = max([len(x) for x in data])
-            index = pd.date_range(start=pd.to_datetime(pd.read_csv(Covid.database['confirmed']).columns[-1]) - timedelta(days=len(data)), periods=max_len, freq='D')
 
+            max_len = max([len(x) for x in data])
+            index = pd.date_range(start= (today - timedelta(days=max_len-1) ), end = today,freq='D')
+            index = [str(x)[5:10] for x in index]
+            
             for ind, i in enumerate(data):
                 if len(i) < max_len:
                     i = [0]*(max_len-len(i))+list(i)
 
                 plt.bar(index,i, label = names[ind],alpha = 0.5)
-        
+
         plt.title(title, fontsize=14)
         plt.legend(loc='upper left',fontsize=12)
         plt.xticks(rotation=90)
         if trim:
-            plt.xlim(index[0] + timedelta(days=trim),)
+            plt.xlim(trim,)
         plt.show()
 
     @classmethod
@@ -247,6 +252,97 @@ class Covid:
 
             Covid.plot_cummulative([data[name] for name in names],names,trim=trim)
 
+    @classmethod
+    def xgboost_regressor(cls):
+        from xgboost import XGBRegressor
+        import joblib
+
+        deaths = cls('all').patients().deaths()
+        alives = cls('all').patients().alive()
+        
+        data = [alives.data,deaths.data]
+        X = []
+
+        for ind, base in enumerate(data):
+            base = base[['diabetes', 'copd', 'asthma',
+                        'immunosuppression', 'hypertension',
+                        'cardiovascular', 'obesity', 'kidney_disease',
+                        'smoker','sex','age']]
+            base_sex = base['sex'].copy()
+            base_age = base['age'].copy()
+            base_age_normal = base_age/max(max(data[0]['age']),max(data[1]['age']))
+            base_sex.replace(99,2,inplace=True)
+            base_sex.replace(1,0,inplace=True)
+            base_sex.replace(2,1,inplace=True)
+
+            base = base.replace([97,98,99],2)
+            base = base.replace(2,0)
+            base['sex']=base_sex
+            base['age']=base_age_normal
+            base['y'] = [ind]*len(base)
+            X.append(base)
+        X = pd.concat(X)
+        y = X['y']
+        X = X.drop('y',axis=1)
+
+        XGBreg_model = XGBRegressor(base_score=1-(len(deaths.data)/(len(deaths.data)+len(alives.data))),
+                                    booster='gbtree', colsample_bylevel=1,
+                                    colsample_bynode=1, colsample_bytree=1, gamma=0.1,
+                                    learning_rate=0.1, max_delta_step=0, max_depth=30,
+                                    min_child_weight=1, missing=None, n_estimators=100, n_jobs=1,
+                                    nthread=2, objective='binary:logistic', random_state=0,
+                                    reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
+                                    silent=None, subsample=1, verbosity=1)
+        XGBreg_model.fit(X, y)
+        joblib.dump(XGBreg_model,'Xboost_model.pkl')
+        return XGBreg_model
+
+    @classmethod
+    def predict_patient_dead(cls):
+        
+        print('################################################################')
+        print('This function predicts if a patient is going to die from covid19')
+        print('################################################################')
+        
+        print('Checking if there are a model already: ')
+        checking = True
+        while checking is True:
+            try:
+                model = joblib.load('Xboost_model.pkl')
+                print('############')
+                print('There is a model, predicting machine is starting...')
+                print('############')
+                checking = False
+            except:
+                print('############')
+                yes = input('There are no model available, do you wish to train one just now? [y] for yes: ')
+                print('############')
+                if yes == 'y':
+                    print('############')
+                    print('Ok. Predicting machine is starting to train...')
+                    print('############')
+                    model = Covid.xgboost_regressor()
+                    print('Model ready, predicting machine is starting...')
+                    checking = False
+                else:
+                    print('Ok, see you later...')
+                    print('############')
+
+                    return
+        print('########################')
+        features = pd.DataFrame()
+        for feature in 
+        
+
+
+
+        
+        
+        ['diabetes', 'copd', 'asthma',
+       'immunosuppression', 'hypertension',
+       'cardiovascular', 'obesity', 'kidney_disease',
+       'smoker','sex','age']
+    
     class Patients:
         
         def __init__(self,ob,data):
@@ -256,7 +352,6 @@ class Covid:
                  self.data = data
             else:
                  self.data = data[data['lives_at'] == self.state_code]
-            
 
         def describe(self):
             binary = pd.DataFrame()
@@ -403,21 +498,4 @@ class Covid:
 
         def plot_illness(self):
             pass
-        @classmethod
-        def xgboost_regressor(cls):
-            from xgboost import XGBRegressor
-            from sklearn.model_selection import train_test_split
-
-            deaths = Covid('all').patients().deaths()
-            alives = Covid('all').patients().alive()
-
-            dead = deaths.data
-            alive = alives.data
-            XGBreg_model = XGBRegressor(base_score=0.89, booster='gbtree', colsample_bylevel=1,
-                                        colsample_bynode=1, colsample_bytree=1, gamma=0.1,
-                                        learning_rate=0.1, max_delta_step=0, max_depth=30,
-                                        min_child_weight=1, missing=None, n_estimators=100, n_jobs=1,
-                                        nthread=2, objective='binary:logistic', random_state=0,
-                                        reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
-                                        silent=None, subsample=1, verbosity=1)
-            XGBreg_model.fit(X_train, y_train)
+        
