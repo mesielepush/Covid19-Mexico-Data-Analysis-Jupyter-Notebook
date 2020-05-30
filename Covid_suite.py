@@ -207,12 +207,14 @@ class Covid:
         plt.show()
 
     @staticmethod
-    def preprocess_all(state):
-        
-        deaths = Covid(state).patients().deaths()
-        alives = Covid(state).patients().alive()
+    def preprocess():
+        from sklearn.model_selection import train_test_split
+
+        deaths = Covid('all').patients().deaths()
+        alives = Covid('all').patients().alive()
         data = [alives.data,deaths.data]
 
+        X = []
         for ind, base in enumerate(data):
             base = base[['diabetes', 'copd', 'asthma',
                         'immunosuppression', 'hypertension',
@@ -231,9 +233,14 @@ class Covid:
             base['age']=base_age_normal
             base['y'] = [ind]*len(base)
             X.append(base)
+
         X = pd.concat(X)
         y = X['y']
-        X = X.drop('y',axis=1)        
+        X = X.drop('y',axis=1)
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+
+        return X_train, X_test, y_train, y_test
 
     @classmethod
     def update_data(cls,databases_dir):
@@ -287,12 +294,28 @@ class Covid:
 
     @classmethod
     def xgboost_regressor(cls):
-        from xgboost import XGBRegressor
         import joblib
+        from xgboost import XGBRegressor
+        from xgboost import plot_importance
+        from sklearn.metrics import roc_curve
+        from sklearn.metrics import auc
+        
 
-        X,y = cls.preprocess_all(data)
+        try:
+            model = joblib.load('Xboost_model.pkl')
+            use_this = input('There is already a model, did you whish to use it? [y] wherever else to train a new one ')
+            if use_this == 'y':
+                plot_importance(model)
+                plt.show()
+                return model
+            else:
+                print('Training a new model...')
+        except:
+            pass
 
-        XGBreg_model = XGBRegressor(base_score=1-(len(deaths.data)/(len(deaths.data)+len(alives.data))),
+        X_train, X_test, y_train, y_test = cls.preprocess_all()
+
+        XGBreg_model = XGBRegressor(base_score=0.89,
                                     booster='gbtree', colsample_bylevel=1,
                                     colsample_bynode=1, colsample_bytree=1, gamma=0.1,
                                     learning_rate=0.1, max_delta_step=0, max_depth=30,
@@ -300,7 +323,41 @@ class Covid:
                                     nthread=2, objective='binary:logistic', random_state=0,
                                     reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
                                     silent=None, subsample=1, verbosity=1)
-        XGBreg_model.fit(X, y)
+        XGBreg_model.fit(X_train, y_train)
+        
+        reg_pred = XGBRe_model.predict(X_test)
+        print(confusion_matrix(y_test,reg_pred))
+
+        from sklearn.metrics import roc_curve
+        from sklearn.metrics import roc_auc_score
+
+        model_probs = XGBRe_model.predict_proba(X_test)
+        null_probs = [0 for _ in range(len(y_test))]
+        model_positive_probs = model_probs[:, 1]
+
+        null_auc = roc_auc_score(y_test, null_probs)
+        model_auc = roc_auc_score(y_test, model_positive_probs)
+
+        print('No Skill: ROC AUC=%.3f' % (null_auc))
+        print('Model: ROC AUC=%.3f' % (model_auc))
+
+        null_fpr, null_tpr, _ = roc_curve(y_test, null_probs)
+        model_fpr, model_tpr, _ = roc_curve(y_test, model_positive_probs)
+
+        plt.plot(null_fpr, null_tpr, linestyle='--', label='No learning')
+        plt.plot(lr_fpr, lr_tpr, marker='.', label='Model')
+
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+
+        plt.legend()
+
+        plt.show()
+
+        plt.close('all')
+        plot_importance(XGBreg_model)
+        plt.show()
+
         joblib.dump(XGBreg_model,'Xboost_model.pkl')
         return XGBreg_model
 
