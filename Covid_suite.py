@@ -26,6 +26,7 @@ class Covid:
         else:
             self.state = state.upper()
         self.state_code = inverse_dict_for_name_states[self.state]
+        
 
     def discrete(self,data_type):
         data =  pd.read_csv(Covid.database[data_type], encoding='ANSI')
@@ -184,7 +185,7 @@ class Covid:
         if type(data) == np.ndarray:
             index = pd.date_range(start= (today - timedelta(days=len(data)-1) ), end = today,freq='D')
             index = [str(x)[5:10] for x in index]
-            plt.bar(index, data, label = names, alpha = 0.6)
+            plt.bar(index, data, label = names, alpha = 0.7)
             
         else:
 
@@ -196,7 +197,7 @@ class Covid:
                 if len(i) < max_len:
                     i = [0]*(max_len-len(i))+list(i)
 
-                plt.bar(index,i, label = names[ind],alpha = 0.5)
+                plt.bar(index,i, label = names[ind],alpha = 0.7)
 
         plt.title(title, fontsize=14)
         plt.legend(loc='upper left',fontsize=12)
@@ -206,76 +207,40 @@ class Covid:
         plt.show()
 
     @staticmethod
-    def preprocess(state):
+    def preprocess_all(state):
         
         deaths = Covid(state).patients().deaths()
         alives = Covid(state).patients().alive()
+        data = [alives.data,deaths.data]
 
-        dead = deaths.data
-        alive = alives.data
+        for ind, base in enumerate(data):
+            base = base[['diabetes', 'copd', 'asthma',
+                        'immunosuppression', 'hypertension',
+                        'cardiovascular', 'obesity', 'kidney_disease',
+                        'smoker','sex','age']]
+            base_sex = base['sex'].copy()
+            base_age = base['age'].copy()
+            base_age_normal = base_age/max(max(data[0]['age']),max(data[1]['age']))
+            base_sex.replace(99,2,inplace=True)
+            base_sex.replace(1,0,inplace=True)
+            base_sex.replace(2,1,inplace=True)
 
-
-        dead = dead[['diabetes', 'copd', 'asthma',
-            'immunosuppression', 'hypertension',
-            'cardiovascular', 'obesity', 'kidney_disease',
-            'smoker','sex','age']]
-        alive = alive[['diabetes', 'copd', 'asthma',
-            'immunosuppression', 'hypertension',
-            'cardiovascular', 'obesity', 'kidney_disease',
-            'smoker','sex','age']]
-
-        dead_sex = dead['sex'].copy()
-        #dead_age = dead['age'].copy()
-
-        #alive_age= alive['age'].copy()
-        alive_sex= alive['sex'].copy()
-
-        # alive_age_normal = alive_age/100
-        # dead_age_normal= dead_age/100
-        # print(len(alive_age_normal))
-        # print(len(dead_age_normal))
-        # alive_age_normal = [1 if x>1 else x for x in alive_age_normal ]
-        # dead_age_normal  = [1 if x>1 else x for x in dead_age_normal ] 
-
-        # print(len(alive_age_normal))
-        # print(len(dead_age_normal))
-
-        dead_sex.replace(99,2,inplace=True)
-        dead_sex.replace(1,0,inplace=True)
-        dead_sex.replace(2,1,inplace=True)
-
-        alive_sex.replace(99,2,inplace=True)
-        alive_sex.replace(1,0,inplace=True)
-        alive_sex.replace(2,1,inplace=True)
-
-
-        dead = dead.replace([97,98,99],2)
-        dead = dead.replace(2,0)
-        alive = alive.replace([97,98,99],2)
-        alive = alive.replace(2,0)
-
-        dead = dead.drop(['sex','age'],axis=1)
-        alive = alive.drop(['sex','age'],axis=1)
-
-        dead['sex']=dead_sex
-        #dead['age']=dead_age_normal
-        alive['sex']=alive_sex
-        #alive['age']=alive_age_normal
-
-        alive['y'] = [0]*len(alive)
-        dead['y'] = [1]*len(dead)
-
-        X = pd.concat([alive,dead])
+            base = base.replace([97,98,99],2)
+            base = base.replace(2,0)
+            base['sex']=base_sex
+            base['age']=base_age_normal
+            base['y'] = [ind]*len(base)
+            X.append(base)
+        X = pd.concat(X)
         y = X['y']
-        X = X.drop('y',axis=1)
-        return X,y
-    
+        X = X.drop('y',axis=1)        
+
     @classmethod
     def update_data(cls,databases_dir):
         cls.database  = databases_dir
 
     @classmethod
-    def get_max_to_min(cls,dtype, include_national = False, max_to_min = True,window=14):
+    def get_max_to_min(cls,dtype, include_national = False, max_to_min = True):
                 
         if dtype not in ['confirmed','negatives','deaths','suspicious','actives']:
             dtype_error(dtype)
@@ -294,6 +259,9 @@ class Covid:
 
     @classmethod
     def plot_max_to_min(cls,dtype,n=None,title=None, trim=None, include_national = False, max_to_min = True):
+        plt.close('all')
+        plt.rcParams["figure.figsize"] = (15,6)
+        
         if dtype not in ['confirmed','negatives','deaths','suspicious','actives']:
             dtype_error(dtype)
             return
@@ -322,12 +290,7 @@ class Covid:
         from xgboost import XGBRegressor
         import joblib
 
-        deaths = cls('all').patients().deaths()
-        alives = cls('all').patients().alive()
-        
-        data = [alives.data,deaths.data]
-        
-        X,y = cls.preprocess(data)
+        X,y = cls.preprocess_all(data)
 
         XGBreg_model = XGBRegressor(base_score=1-(len(deaths.data)/(len(deaths.data)+len(alives.data))),
                                     booster='gbtree', colsample_bylevel=1,
@@ -341,51 +304,6 @@ class Covid:
         joblib.dump(XGBreg_model,'Xboost_model.pkl')
         return XGBreg_model
 
-    @classmethod
-    def predict_patient_dead(cls):
-        pass
-    #     print('################################################################')
-    #     print('This function predicts if a patient is going to die from covid19')
-    #     print('################################################################')
-        
-    #     print('Checking if there are a model already: ')
-    #     checking = True
-    #     while checking is True:
-    #         try:
-    #             model = joblib.load('Xboost_model.pkl')
-    #             print('############')
-    #             print('There is a model, predicting machine is starting...')
-    #             print('############')
-    #             checking = False
-    #         except:
-    #             print('############')
-    #             yes = input('There are no model available, do you wish to train one just now? [y] for yes: ')
-    #             print('############')
-    #             if yes == 'y':
-    #                 print('############')
-    #                 print('Ok. Predicting machine is starting to train...')
-    #                 print('############')
-    #                 model = Covid.xgboost_regressor()
-    #                 print('Model ready, predicting machine is starting...')
-    #                 checking = False
-    #             else:
-    #                 print('Ok, see you later...')
-    #                 print('############')
-
-    #                 return
-    #     print('########################')
-    #     features = pd.DataFrame()
-    #     for feature in 
-        
-
-
-
-        
-        
-    #     ['diabetes', 'copd', 'asthma',
-    #    'immunosuppression', 'hypertension',
-    #    'cardiovascular', 'obesity', 'kidney_disease',
-    #    'smoker','sex','age']
     
     class Patients:
         
@@ -483,15 +401,26 @@ class Covid:
             return self
 
         def illness(self):
+            
+            base = self.data[['diabetes', 'copd', 'asthma',
+                        'immunosuppression', 'hypertension',
+                        'cardiovascular', 'obesity', 'kidney_disease',
+                        'smoker','sex','age']]
+            base_sex = base['sex'].copy()
+            base_age = base['age'].copy()
+            base_age_normal = base_age/max(Covid('all').patients().data['age'])
+            base_sex.replace(99,2,inplace=True)
+            base_sex.replace(1,0,inplace=True)
+            base_sex.replace(2,1,inplace=True)
 
-            self.data = self.data[['pneumonia','diabetes', 'copd', 'asthma','intubated',
-                               'immunosuppression', 'hypertension',
-                               'cardiovascular', 'obesity', 'kidney_disease',
-                               'smoker']]
-            return self
+            base = base.replace([97,98,99],2)
+            base = base.replace(2,0)
+            base['sex']=base_sex
+            base['age']=base_age_normal
+            
+            return base
 
         def plot_sectors(self):
-
             plt.close('all')
             plt.rcParams["figure.figsize"] = (15,25)
 
@@ -539,7 +468,37 @@ class Covid:
                 plt.xticks(rotation=90,fontsize=16)
 
             plt.show()
-
-        def plot_illness(self):
-            pass
         
+        @staticmethod
+        def plot_illness():
+            plt.close('all')
+            plt.rcParams["figure.figsize"] = (15,6)
+            alive = Covid('all').patients().alive().illness().drop(['age','sex'],axis=1)
+            deaths = Covid('all').patients().deaths().illness().drop(['age','sex'],axis=1)
+            plt.bar([x+0.2 for x in range(0,len(alive.keys()))],[(sum(deaths[x])/len(deaths[x]))*100 for x in deaths.keys()], width=0.5,label='deaths',color='r')
+            plt.bar(alive.keys(),[(sum(alive[x])/len(alive[x]))*100 for x in alive.keys()], width=0.5,label='alive',color='b')
+            plt.legend()
+            plt.ylabel('Percentage of population with the affection',fontsize=18)
+            plt.title('Proportion of Illness in dead vs alive patients',fontsize=20)
+            plt.xticks(rotation=75,fontsize=14,fontweight='bold')
+            plt.show()
+
+        @staticmethod
+        def plot_time_to_death():
+            data = Covid('all').patients().data
+            result = {}
+            for ind, i in enumerate(data['onset_symptoms']):
+                time = (pd.to_datetime(data.iloc[ind]['day_of_death']) - pd.to_datetime(i))
+                if int(str(time)[:-14]) < 0:
+                    continue
+                if int(str(time)[:-14]) in result.keys():
+                    result[int(str(time)[:-14])]+=1
+                else:
+                    result[int(str(time)[:-14])]=1    
+        
+            plt.close('all')
+            plt.rcParams["figure.figsize"] = (15,25)
+            plt.bar(sorted(result.keys()),[result[x] for x in sorted(result.keys())])
+            plt.title('days from onset symptoms to death',fontsize=18)
+            plt.ylabel(' number of patients',fontsize=16)
+            plt.xlabel('Days',fontsize=16)
