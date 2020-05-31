@@ -247,7 +247,7 @@ class Covid:
         cls.database  = databases_dir
 
     @classmethod
-    def get_max_to_min(cls,dtype, include_national = False, max_to_min = True):
+    def get_max_to_min(cls,dtype, include_national = False, max_to_min = True,window = 14):
                 
         if dtype not in ['confirmed','negatives','deaths','suspicious','actives']:
             dtype_error(dtype)
@@ -287,7 +287,7 @@ class Covid:
 
         else:
             data = {key:Covid(key).cummulative(dtype) for key in names}
-            data = OrderedDict(sorted(data.items(), key=lambda t: t[1][-1],reverse=True))
+            data = OrderedDict(sorted(data.items(), key=lambda t: t[1][-1],reverse=max_to_min))
             names = list(data.keys())[:n]
 
             Covid.plot_cummulative([data[name] for name in names],names,trim=trim)
