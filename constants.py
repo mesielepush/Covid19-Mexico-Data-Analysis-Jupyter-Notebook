@@ -124,9 +124,9 @@ cdns_states = ['AGUASCALIENTES',
 
 inverse_dict_for_name_states = {patients_codes['states'][i]: i for i in patients_codes['states'].keys()}
 
-def print_state_names():
+def print_state_names(state):
     print('####')
-    print('ERROR: State Name not in database')
+    print(f'ERROR: State Name : {state} : not in database')
     print('Available state names: ')
     print('####')
     for name in cdns_states:

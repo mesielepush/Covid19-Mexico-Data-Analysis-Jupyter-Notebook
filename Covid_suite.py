@@ -21,12 +21,14 @@ class Covid:
         elif state.lower() in ['cdmx', 'distritofederal', 'df', 'ciudad de mexico']:
             self.state = 'DISTRITO FEDERAL'
         elif state.upper() not in cdns_states:
-            print_state_names()
+            print_state_names(state)
             return
         else:
             self.state = state.upper()
         self.state_code = inverse_dict_for_name_states[self.state]
-        
+
+    def __str__(self):
+        return f'Data for {self.state},\nstate code: {self.state_code},\npopulation: {self.population()}'
 
     def discrete(self,data_type):
         data =  pd.read_csv(Covid.database[data_type], encoding='ANSI')
@@ -44,7 +46,7 @@ class Covid:
                 cummulative.append(i)
             else:
                 cummulative.append(i+cummulative[-1])
-        return cummulative 
+        return np.array(cummulative) 
     
     def actives(self,window=14):
                
@@ -108,7 +110,7 @@ class Covid:
         return numerator / denominator
 
     @staticmethod
-    def plot_actives(data,names,trim=0):
+    def plot_actives(data,names,trim=0, title=''):
         plt.close('all')
         plt.rcParams["figure.figsize"] = (15,7)
         
@@ -137,6 +139,7 @@ class Covid:
 
         plt.xticks(rotation=90, fontsize=12)
         plt.xlim(trim,)
+        plt.title(title)
         plt.legend(fontsize=14,loc=2)
         plt.show()
     
@@ -145,20 +148,28 @@ class Covid:
         plt.close('all')
         plt.rcParams["figure.figsize"] = (15,7)
         
-        if type(data[0]) == int:
-            index = pd.date_range(start=pd.to_datetime(pd.read_csv(Covid.database['confirmed']).columns[-1]) - timedelta(days=len(data)),periods = len(data),freq='D')
+        today = pd.to_datetime( pd.read_csv(Covid.database['confirmed']).columns[-1],dayfirst=True)
+        
+
+        if type(data[0]) == np.int32:
+            index = pd.date_range(start= today - timedelta(days=len(data)), end=today, freq='D')
+            index = [str(x)[5:10] for x in index]
             plt.plot(index, data, label = names, alpha = 0.6)
             plt.scatter(index[-1],data[-1])
             plt.text(index[-1], data[-1],str(int(data[-1])) , fontsize=14)
         else:
+            if len(data) != len(names):
+                raise ValueError('Each database should have a name')
+            data = [list(x) for x in data]
+
+            max_len = max([len(x) for x in data])-1
+            index = pd.date_range(start=today - timedelta(days=max_len), end=today, freq='D')
+            index = [str(x)[5:10] for x in index]
             
-            max_len = max([len(x) for x in data])
-            index = pd.date_range(start=pd.to_datetime(pd.read_csv(Covid.database['confirmed']).columns[-1]) - timedelta(days=max_len),
-                                periods=max_len, freq='D')
-            
+
             for ind,i in enumerate(data):
                 if len(i) != max_len:
-                    i = [0]*(max_len-len(i))+i
+                    i = [0]*(max_len-len(i)+1)+i
 
                 plt.plot(index,i,label=names[ind])
                 plt.scatter(index[-1],i[-1])
@@ -169,7 +180,7 @@ class Covid:
         plt.title(title, fontsize=14)
         
         if trim:
-            plt.xlim(index[0] + timedelta(days=trim),)
+            plt.xlim(trim,)
             
         plt.legend(loc='upper left',fontsize=14)
         plt.show()
@@ -179,7 +190,7 @@ class Covid:
         plt.close('all')
         plt.rcParams["figure.figsize"] = (15,6)
         
-        today = pd.to_datetime(pd.read_csv(Covid.database['confirmed']).columns[-1])
+        today = pd.to_datetime( pd.read_csv(Covid.database['confirmed']).columns[-1],dayfirst=True)
         
         
         if type(data) == np.ndarray:
@@ -265,7 +276,7 @@ class Covid:
             return OrderedDict(sorted(dictionary.items(), key=lambda t: t[1],reverse=max_to_min))
 
     @classmethod
-    def plot_max_to_min(cls,dtype,n=None,title=None, trim=None, include_national = False, max_to_min = True):
+    def plot_max_to_min(cls,dtype,n=None,title=None, trim=None, include_national = False, max_to_min = True,window=14):
         plt.close('all')
         plt.rcParams["figure.figsize"] = (15,6)
         
@@ -278,7 +289,7 @@ class Covid:
             names = [x for x in cdns_states if x != 'Nacional']
         
         if dtype == 'actives':
-            data = {key:Covid(key).actives() for key in names}
+            data = {key:Covid(key).actives(window=window) for key in names}
             data = OrderedDict(sorted(data.items(), key=lambda t: t[1].actives.iloc[-1],reverse=max_to_min))
             names = list(data.keys())[:n]
 
@@ -541,8 +552,11 @@ class Covid:
             plt.show()
 
         @staticmethod
-        def plot_time_to_death():
-            data = Covid('all').patients().data
+        def plot_time_to_death(trim=0):
+            plt.close('all')
+            plt.rcParams["figure.figsize"] = (15,6)
+
+            data = Covid('all').patients().deaths().data
             result = {}
             for ind, i in enumerate(data['onset_symptoms']):
                 time = (pd.to_datetime(data.iloc[ind]['day_of_death']) - pd.to_datetime(i))
@@ -553,9 +567,8 @@ class Covid:
                 else:
                     result[int(str(time)[:-14])]=1    
         
-            plt.close('all')
-            plt.rcParams["figure.figsize"] = (15,25)
             plt.bar(sorted(result.keys()),[result[x] for x in sorted(result.keys())])
             plt.title('days from onset symptoms to death',fontsize=18)
             plt.ylabel(' number of patients',fontsize=16)
             plt.xlabel('Days',fontsize=16)
+            plt.xlim(0,trim)
