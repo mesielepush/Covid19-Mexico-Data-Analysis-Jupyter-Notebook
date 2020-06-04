@@ -153,7 +153,9 @@ class Covid:
 
         plt.xticks(rotation=90, fontsize=12)
         plt.xlim(trim,)
-        plt.title(title)
+        plt.title(title, fontsize=20)
+        plt.ylabel('Number of Patients', fontsize=16)
+        plt.xlabel('Dates', fontsize=16)
         plt.legend(fontsize=14,loc=2)
         plt.show()
     
@@ -191,8 +193,9 @@ class Covid:
                 
 
         plt.xticks(rotation=90,fontsize=13)
-        plt.title(title, fontsize=14)
-        
+        plt.title(title, fontsize=18)
+        plt.ylabel('Number of Patients', fontsize=16)
+        plt.xlabel('Dates', fontsize=16)
         if trim:
             plt.xlim(trim,)
             
@@ -224,9 +227,11 @@ class Covid:
 
                 plt.bar(index,i, label = names[ind],alpha = 0.7)
 
-        plt.title(title, fontsize=14)
-        plt.legend(loc='upper left',fontsize=12)
+        plt.title(title, fontsize=18)
+        plt.legend(loc='upper left',fontsize=14)
         plt.xticks(rotation=90)
+        plt.ylabel('Number of Patients', fontsize=16)
+        plt.xlabel('Dates', fontsize=16)
         if trim:
             plt.xlim(trim,)
         plt.show()
@@ -318,45 +323,50 @@ class Covid:
             Covid.plot_cummulative([data[name] for name in names],names,trim=trim,title=title)
 
     @classmethod
-    def xgboost_regressor(cls):
+    def xgboost_classifier(cls):
         
-        from xgboost import XGBRegressor
-        from xgboost import plot_importance
-        from sklearn.metrics import roc_curve
-        from sklearn.metrics import auc
+        from xgboost import XGBClassifier, plot_importance
+        from sklearn.metrics import roc_curve, auc, confusion_matrix
         
+        print('Starting preprocess of X_train, X_test, y_train, y_test...')
+        X_train, X_test, y_train, y_test = cls.preprocess()
+        print('#'*15)
+        print('Preprocess done...')
+        print('#'*15)
+        print(f'X_train: {len(X_train)}')
+        print(f'X_test: {len(X_test)}')
+        print(f'Deaths on train set: {list(y_train.values).count(1)}')
+        print(f'Deaths on test set: {list(y_test.values).count(1)}')
+        print('#'*15)
 
-        try:
-            model = joblib.load('Xboost_model.pkl')
-            use_this = input('There is already a model, did you whish to use it? [y] wherever else to train a new one ')
-            if use_this == 'y':
-                plot_importance(model)
-                plt.show()
-                return model
-            else:
-                print('Training a new model...')
-        except:
-            pass
-
-        X_train, X_test, y_train, y_test = cls.preprocess_all()
-
-        XGBreg_model = XGBRegressor(base_score=0.89,
+        XGBclas_model = XGBClassifier(base_score=0.89,
                                     booster='gbtree', colsample_bylevel=1,
                                     colsample_bynode=1, colsample_bytree=1, gamma=0.1,
-                                    learning_rate=0.1, max_delta_step=0, max_depth=30,
+                                    learning_rate=0.1, max_delta_step=0, max_depth=10,
                                     min_child_weight=1, missing=None, n_estimators=100, n_jobs=1,
                                     nthread=2, objective='binary:logistic', random_state=0,
                                     reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
                                     silent=None, subsample=1, verbosity=1)
-        XGBreg_model.fit(X_train, y_train)
-        
-        reg_pred = XGBRe_model.predict(X_test)
-        print(confusion_matrix(y_test,reg_pred))
+
+        print('#'*15)
+        print('Training the model...')
+        XGBclas_model.fit(X_train, y_train)
+        print('#'*15)
+        print('Predicting the Test set: ')
+        print('#'*15)
+        clas_pred = XGBclas_model.predict(X_test)
+        print('Confusion Matrix: ')
+        print('[ Alive   Dead]')
+        print(confusion_matrix(y_test,clas_pred,labels=[0,1]))
 
         from sklearn.metrics import roc_curve
         from sklearn.metrics import roc_auc_score
 
-        model_probs = XGBRe_model.predict_proba(X_test)
+        print('#'*15)
+        print('Calculating the ROC curves: ')
+        print('#'*15)
+
+        model_probs = XGBclas_model.predict_proba(X_test)
         null_probs = [0 for _ in range(len(y_test))]
         model_positive_probs = model_probs[:, 1]
 
@@ -369,8 +379,11 @@ class Covid:
         null_fpr, null_tpr, _ = roc_curve(y_test, null_probs)
         model_fpr, model_tpr, _ = roc_curve(y_test, model_positive_probs)
 
+        plt.close('all')
+        plt.rcParams["figure.figsize"] = (15,6)
+
         plt.plot(null_fpr, null_tpr, linestyle='--', label='No learning')
-        plt.plot(lr_fpr, lr_tpr, marker='.', label='Model')
+        plt.plot(model_fpr, model_tpr, marker='.', label='Model')
 
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
@@ -380,11 +393,10 @@ class Covid:
         plt.show()
 
         plt.close('all')
-        plot_importance(XGBreg_model)
+        plot_importance(XGBclas_model)
         plt.show()
 
-        joblib.dump(XGBreg_model,'Xboost_model.pkl')
-        return XGBreg_model
+        return XGBclas_model
 
     
     class Patients:
@@ -419,19 +431,29 @@ class Covid:
             return self
 
         def deaths(self):
-            self.data = self.data[self.data['result']==1]
             self.data = self.data[self.data['day_of_death']!='9999-99-99']
             if len(self.data) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
             return self
         
         def alive(self):
-            self.data = self.data[self.data['result']==1]
             self.data = self.data[self.data['day_of_death']=='9999-99-99']
             if len(self.data) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
             return self
+        
+        def infected(self):
+            self.data = self.data[self.data['result']==1]
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
 
+        def not_infected(self):
+            self.data = self.data[self.data['result']==2]
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
+        
         def describe(self):
             binary = pd.DataFrame()
             row_name = ['patients']
@@ -480,7 +502,7 @@ class Covid:
                     
             binary['features'] = row_name
             binary['frequency']  = row_n
-            binary['percentage of positives'] = row_value
+            binary['%'] = row_value
 
 
             return binary
@@ -505,7 +527,7 @@ class Covid:
             
             return base
 
-        def plot_sectors(self):
+        def sectors(self):
             plt.close('all')
             plt.rcParams["figure.figsize"] = (15,25)
 
@@ -558,6 +580,7 @@ class Covid:
         def plot_illness():
             plt.close('all')
             plt.rcParams["figure.figsize"] = (15,6)
+
             alive = Covid('all').patients().alive().illness().drop(['age','sex'],axis=1)
             deaths = Covid('all').patients().deaths().illness().drop(['age','sex'],axis=1)
             plt.bar([x+0.2 for x in range(0,len(alive.keys()))],[(sum(deaths[x])/len(deaths[x]))*100 for x in deaths.keys()], width=0.5,label='deaths',color='r')
