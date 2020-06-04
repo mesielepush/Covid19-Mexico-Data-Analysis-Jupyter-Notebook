@@ -1,10 +1,17 @@
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import joblib
 from datetime import datetime, timedelta
+
 from collections import OrderedDict
 from constants import *
+
 plt.style.use('seaborn-whitegrid')
+
+if not os.path.exists('tmp'):
+    os.mkdir('tmp')
 
 class Covid:
     
@@ -49,7 +56,12 @@ class Covid:
         return np.array(cummulative) 
     
     def actives(self,window=14):
-               
+        
+        try:
+            return joblib.load(f'tmp/{self.state}_actives_w_{window}_{Covid.database["patients"][3:6]}.pkl')
+        except:
+            pass
+
         if self.state == 'Nacional':
             data = pd.read_csv(Covid.database['patients'], encoding='ANSI')
             data = change_df_names(data)
@@ -80,6 +92,8 @@ class Covid:
         new_data['dates']   = result.keys()
         new_data = new_data.set_index('dates',drop=True)
         
+        joblib.dump(new_data,f'tmp/{self.state}_actives_w_{window}_{Covid.database["patients"][3:6]}.pkl')
+
         return new_data
 
     def patients(self):
@@ -301,11 +315,11 @@ class Covid:
             data = OrderedDict(sorted(data.items(), key=lambda t: t[1][-1],reverse=max_to_min))
             names = list(data.keys())[:n]
 
-            Covid.plot_cummulative([data[name] for name in names],names,trim=trim)
+            Covid.plot_cummulative([data[name] for name in names],names,trim=trim,title=title)
 
     @classmethod
     def xgboost_regressor(cls):
-        import joblib
+        
         from xgboost import XGBRegressor
         from xgboost import plot_importance
         from sklearn.metrics import roc_curve
@@ -383,6 +397,41 @@ class Covid:
             else:
                  self.data = data[data['lives_at'] == self.state_code]
 
+        def __str__(self):
+            return f'{len(self.data)} Patients data from: {self.state}'
+
+        def age(self,start,end):
+            self.data = self.data[(self.data.age >=start) & (self.data.age <= end) ]
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
+        
+        def women(self):
+            self.data = self.data[self.data['sex']==1]
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
+        
+        def men(self):    
+            self.data = self.data[self.data['sex']==2]
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
+
+        def deaths(self):
+            self.data = self.data[self.data['result']==1]
+            self.data = self.data[self.data['day_of_death']!='9999-99-99']
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
+        
+        def alive(self):
+            self.data = self.data[self.data['result']==1]
+            self.data = self.data[self.data['day_of_death']=='9999-99-99']
+            if len(self.data) == 0:
+                raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            return self
+
         def describe(self):
             binary = pd.DataFrame()
             row_name = ['patients']
@@ -435,38 +484,6 @@ class Covid:
 
 
             return binary
-
-        def age(self,start,end):
-            self.data = self.data[(self.data.age >=start) & (self.data.age <= end) ]
-            if len(self.data) == 0:
-                raise Exception("This subset of the data is empty, there are no cases with this particularities")
-            return self
-        
-        def women(self):
-            self.data = self.data[self.data['sex']==1]
-            if len(self.data) == 0:
-                raise Exception("This subset of the data is empty, there are no cases with this particularities")
-            return self
-        
-        def deaths(self):
-            self.data = self.data[self.data['result']==1]
-            self.data = self.data[self.data['day_of_death']!='9999-99-99']
-            if len(self.data) == 0:
-                raise Exception("This subset of the data is empty, there are no cases with this particularities")
-            return self
-        
-        def men(self):    
-            self.data = self.data[self.data['sex']==2]
-            if len(self.data) == 0:
-                raise Exception("This subset of the data is empty, there are no cases with this particularities")
-            return self
-
-        def alive(self):
-            self.data = self.data[self.data['result']==1]
-            self.data = self.data[self.data['day_of_death']=='9999-99-99']
-            if len(self.data) == 0:
-                raise Exception("This subset of the data is empty, there are no cases with this particularities")
-            return self
 
         def illness(self):
             
