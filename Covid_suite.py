@@ -61,7 +61,6 @@ class Covid:
             return joblib.load(f'tmp/{self.state}_actives_w_{window}_{Covid.database["patients"][3:6]}.pkl')
         except:
             pass
-
         if self.state == 'Nacional':
             data = pd.read_csv(Covid.database['patients'], encoding='ANSI')
             data = change_df_names(data)
@@ -454,6 +453,35 @@ class Covid:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
             return self
         
+        def actives(self, window = 14):
+            
+            if len(self.data[self.data['result']==1]) == 0:
+                raise Exception("This subset contains no infected")
+            
+            data = self.data[self.data['result']==1].copy()
+            data['onset_symptoms'] = pd.to_datetime(data['onset_symptoms'])
+            
+            set_dates = set(data['onset_symptoms'])
+            timeline= pd.date_range(start=min(set_dates), end = data['Updated_at'].iloc[0])
+            result = {key:0 for key in timeline}
+            
+            for ind, day_active in enumerate(data['onset_symptoms']):
+                for _ in range(window):
+                    if day_active not in timeline:
+                        break
+                    elif data['day_of_death'].iloc[ind] != '9999-99-99' and day_active > pd.to_datetime(data['day_of_death'].iloc[ind]):
+                        break
+                    else:
+                        result[day_active] +=1
+                        day_active = day_active + timedelta(days=1)
+            
+            new_data = pd.DataFrame()
+            new_data['actives'] = result.values()
+            new_data['dates']   = result.keys()
+            new_data = new_data.set_index('dates',drop=True)
+            
+            return new_data
+
         def describe(self):
             binary = pd.DataFrame()
             row_name = ['patients']
