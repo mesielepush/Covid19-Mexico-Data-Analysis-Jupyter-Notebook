@@ -407,57 +407,82 @@ class Covid:
                  self.data = data
             else:
                  self.data = data[data['lives_at'] == self.state_code]
+            self.filters = []
 
         def __str__(self):
             return f'{len(self.data)} Patients data from: {self.state}'
 
         def age(self,start,end):
-            self.data = self.data[(self.data.age >=start) & (self.data.age <= end) ]
-            if len(self.data) == 0:
+            filter = self.data[(self.data.age >=start) & (self.data.age <= end) ]
+            if len(filter) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
+
+            self.data = filter
+            self.filters.append(f'_age_{start}_{end}_')
             return self
         
         def women(self):
-            self.data = self.data[self.data['sex']==1]
-            if len(self.data) == 0:
+            filter = self.data[self.data['sex']==1]
+            if len(filter) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
+
+            self.data = filter
+            self.filters.append('_women_')
             return self
         
-        def men(self):    
-            self.data = self.data[self.data['sex']==2]
-            if len(self.data) == 0:
+        def men(self):
+            filter = self.data[self.data['sex']==2]
+            if len(filter) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            self.data = filter
+            self.filters.append('_men_')
             return self
 
         def deaths(self):
-            self.data = self.data[self.data['day_of_death']!='9999-99-99']
-            if len(self.data) == 0:
+            filter = self.data[self.data['day_of_death']!='9999-99-99']
+            if len(filter) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            self.data = filter
+            self.filters.append('_deaths_')
+            
             return self
         
         def alive(self):
-            self.data = self.data[self.data['day_of_death']=='9999-99-99']
-            if len(self.data) == 0:
+            filter = self.data[self.data['day_of_death']=='9999-99-99']
+            if len(filter) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            self.data = filter
+            self.filters.append('_alive_')
+            
             return self
         
         def infected(self):
-            self.data = self.data[self.data['result']==1]
-            if len(self.data) == 0:
+            filter = self.data[self.data['result']==1]
+            if len(filter) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            self.data = filter
+            self.filters.append('_infected_')
             return self
 
         def not_infected(self):
-            self.data = self.data[self.data['result']==2]
-            if len(self.data) == 0:
+            filter = self.data[self.data['result']==2]
+            if len(filter) == 0:
                 raise Exception("This subset of the data is empty, there are no cases with this particularities")
+            self.data = filter
+            self.filters.append('_not_infected_')
+            
             return self
         
         def actives(self, window = 14):
             
             if len(self.data[self.data['result']==1]) == 0:
                 raise Exception("This subset contains no infected")
-            
+
+            try:
+                return joblib.load(f'tmp/{self.state}_actives_w_{window}_{[x for x in self.filters]}_{Covid.database["patients"][3:6]}.pkl')
+            except:
+                pass
+
             data = self.data[self.data['result']==1].copy()
             data['onset_symptoms'] = pd.to_datetime(data['onset_symptoms'])
             
@@ -480,6 +505,8 @@ class Covid:
             new_data['dates']   = result.keys()
             new_data = new_data.set_index('dates',drop=True)
             
+            joblib.dump(new_data, f'tmp/{self.state}_actives_w_{window}_{[x for x in self.filters]}_{Covid.database["patients"][3:6]}.pkl')
+
             return new_data
 
         def describe(self):
