@@ -620,11 +620,11 @@ class Covid:
             plt.show()
 
         @staticmethod
-        def plot_time_to_death(trim=0):
+        def plot_time_to_death(trim=50):
             plt.close('all')
             plt.rcParams["figure.figsize"] = (15,6)
 
-            data = Covid('all').patients().deaths().data
+            data = Covid('all').patients().deaths().infected().data
             result = {}
             for ind, i in enumerate(data['onset_symptoms']):
                 time = (pd.to_datetime(data.iloc[ind]['day_of_death']) - pd.to_datetime(i))
