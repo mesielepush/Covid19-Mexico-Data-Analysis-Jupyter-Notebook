@@ -2,7 +2,9 @@
  Analysis for Covid19 Mexico's official patients Data
 
 Through this [notebook](https://github.com/mesielepush/Covid19-Mexico-Data-Analysis-Jupyter-Notebook/blob/master/MexicoCovidDescriptiveGeneral.ipynb) you can explore the Covid19 official data from Mexico.
-  
+
+![chart example](https://i.imgur.com/pd0pyiA.png)
+
 The notebook revolves around the Covid python class described in [Covid_suite.py](https://github.com/mesielepush/Covid19-Mexico-Data-Analysis-Jupyter-Notebook/blob/master/Covid_suite.py)
 
 Documentation can be found in this [notebook](https://github.com/mesielepush/Covid19-Mexico-Data-Analysis-Jupyter-Notebook/blob/master/Documentation%20for%20Covid%20Class.ipynb).  
