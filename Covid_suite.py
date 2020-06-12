@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import joblib
+import calendar
 from datetime import datetime, timedelta
 
 from collections import OrderedDict
@@ -153,6 +154,7 @@ class Covid:
         plt.xticks(rotation=90, fontsize=12)
         plt.xlim(trim,)
         plt.title(title, fontsize=20)
+        plt.suptitle(calendar.month_name[int(Covid.database['patients'][2:4])]+'-'+Covid.database['patients'][4:6]+'-20'+Covid.database['patients'][:2], fontsize=18)
         plt.ylabel('Number of Patients', fontsize=16)
         plt.xlabel('Dates', fontsize=16)
         plt.legend(fontsize=14,loc=2)
@@ -194,6 +196,7 @@ class Covid:
         plt.xticks(rotation=90,fontsize=13)
         plt.title(title, fontsize=18)
         plt.ylabel('Number of Patients', fontsize=16)
+        plt.suptitle(calendar.month_name[int(Covid.database['patients'][2:4])]+'-'+Covid.database['patients'][4:6]+'-20'+Covid.database['patients'][:2], fontsize=18)
         plt.xlabel('Dates', fontsize=16)
         if trim:
             plt.xlim(trim,)
@@ -230,6 +233,7 @@ class Covid:
         plt.legend(loc='upper left',fontsize=14)
         plt.xticks(rotation=90)
         plt.ylabel('Number of Patients', fontsize=16)
+        plt.suptitle(calendar.month_name[int(Covid.database['patients'][2:4])]+'-'+Covid.database['patients'][4:6]+'-20'+Covid.database['patients'][:2], fontsize=18)
         plt.xlabel('Dates', fontsize=16)
         if trim:
             plt.xlim(trim,)
@@ -642,6 +646,7 @@ class Covid:
             plt.bar(alive.keys(),[(sum(alive[x])/len(alive[x]))*100 for x in alive.keys()], width=0.5,label='alive',color='b')
             plt.legend()
             plt.ylabel('Percentage of population with the affection',fontsize=18)
+            plt.suptitle(calendar.month_name[int(Covid.database['patients'][2:4])]+'-'+Covid.database['patients'][4:6]+'-20'+Covid.database['patients'][:2], fontsize=18)
             plt.title('Proportion of Illness in dead vs alive patients',fontsize=20)
             plt.xticks(rotation=75,fontsize=14,fontweight='bold')
             plt.show()
@@ -665,5 +670,6 @@ class Covid:
             plt.bar(sorted(result.keys()),[result[x] for x in sorted(result.keys())])
             plt.title('days from onset symptoms to death',fontsize=18)
             plt.ylabel(' number of patients',fontsize=16)
+            plt.suptitle(calendar.month_name[int(Covid.database['patients'][2:4])]+'-'+Covid.database['patients'][4:6]+'-20'+Covid.database['patients'][:2], fontsize=18)
             plt.xlabel('Days',fontsize=16)
             plt.xlim(0,trim)
