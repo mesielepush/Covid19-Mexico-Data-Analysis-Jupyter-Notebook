@@ -143,7 +143,7 @@ def change_df_names(patient_data):
                                              "SEXO": "sex",
                                              "ENTIDAD_NAC":"borne_at",
                                              "ENTIDAD_RES": "lives_at",
-                                             "TIPO_PACIENTE": "pacient_type",
+                                             "TIPO_PACIENTE": "patient_type",
                                              "FECHA_INGRESO":"admission_date",
                                              "FECHA_SINTOMAS":"onset_symptoms",
                                              "FECHA_DEF": "day_of_death",
