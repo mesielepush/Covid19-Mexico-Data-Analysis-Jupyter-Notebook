@@ -21,6 +21,7 @@ For most of the notebook you just need:
 * joblib==0.15.1
 * seaborn==0.10.1
 
+### Note:
 There is an implementation of a classifier that doesn't work because there is no enough data to discriminate clearly. You can, however, run it to see the ROC curves. A quick explanation about why it doesn't work is in the [documentation](https://github.com/mesielepush/Covid19-Mexico-Data-Analysis-Jupyter-Notebook/blob/master/Documentation%20for%20Covid%20Class.ipynb).  
 To run that classifier you'll need
 
