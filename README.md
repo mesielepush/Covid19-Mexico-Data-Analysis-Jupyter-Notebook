@@ -39,3 +39,21 @@ The database updates daily from [the official page](https://coronavirus.gob.mx/d
 ## Installation
 
 To install just download or fork this repository, open jupyter notebook on the container folder and run either the [documentation notebook](https://github.com/mesielepush/Covid19-Mexico-Data-Analysis-Jupyter-Notebook/blob/master/Documentation%20for%20Covid%20Class.ipynb) or the main [explorer notebook](https://github.com/mesielepush/Covid19-Mexico-Data-Analysis-Jupyter-Notebook/blob/master/Documentation%20for%20Covid%20Class.ipynb).  
+
+Jonathan Marín - [Github](https://github.com/mesielepush)
+
+</p>
+<p align="center" style="display: flex; justify-content: center; align-items: center;">
+    <a target="_blank" href="https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=mesielepush@gmail.com">
+      mesielepush@gmail.com
+    </a> &nbsp; |
+    <a target="_blank" href="https://github.com/mesielepush?tab=repositories">
+       Portfolio
+    </a> &nbsp; |
+    <a target="_blank" href="https://www.linkedin.com/in/jonathan-nava-mar%C3%ADn-94659318b/">
+      LinkedIn
+    </a> &nbsp; |
+    <a target="_blank" href="">
+      Twitter
+    </a>
+</p>
