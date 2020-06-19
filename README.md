@@ -1,5 +1,5 @@
 # Covid19 Mexico Data Analysis
- Analysis for Mexico's Covid19 official patient's data
+ Benchmark for Mexico's Covid19 official Covid19 patient's data.
 
 Through this [notebook](https://github.com/mesielepush/Covid19-Mexico-Data-Analysis-Jupyter-Notebook/blob/master/MexicoCovidDescriptiveGeneral.ipynb) you can explore and analyze the official data.
 
