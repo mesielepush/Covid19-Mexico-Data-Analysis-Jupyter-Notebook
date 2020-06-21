@@ -3,7 +3,7 @@
 
 Through this [notebook](https://github.com/mesielepush/Covid19-Mexico-Data-Analysis-Jupyter-Notebook/blob/master/MexicoCovidDescriptiveGeneral.ipynb) you can explore and analyze the official data.
 
-![chart example](https://i.imgur.com/clRO6fP.png)
+![chart example](https://i.imgur.com/rgYLdbg.png)
 
 The notebook revolves around the **Covid** python class described in [Covid_suite.py](https://github.com/mesielepush/Covid19-Mexico-Data-Analysis-Jupyter-Notebook/blob/master/Covid_suite.py)
 
@@ -28,7 +28,7 @@ To run that classifier you'll need
 * xgboost==0.90
 * sklearn==0.0
 
-![function photo](https://i.imgur.com/rgYLdbg.png)
+![function photo](https://i.imgur.com/UH1G4li.png)
 
 # Database comes from:
 The database updates daily from [the official page](https://coronavirus.gob.mx/datos/#DownZCSV).
