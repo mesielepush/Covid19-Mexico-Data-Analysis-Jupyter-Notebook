@@ -28,7 +28,7 @@ To run that classifier you'll need
 * xgboost==0.90
 * sklearn==0.0
 
-![function photo](https://i.imgur.com/uAcop03.png)
+![function photo](https://i.imgur.com/rgYLdbg.png)
 
 # Database comes from:
 The database updates daily from [the official page](https://coronavirus.gob.mx/datos/#DownZCSV).
