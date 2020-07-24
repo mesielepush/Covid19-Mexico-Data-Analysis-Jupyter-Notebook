@@ -221,3 +221,31 @@ def dtype_error(dtype):
     print('#######')
     for key in ['confirmed','negatives','deaths','suspicious','actives']:
         print(key)
+
+def getdeathRate(actives,deaths):
+    import numpy as np
+    assert len(actives) == len(deaths)
+    result = []
+    for index, day in enumerate(actives):
+        total = day + deaths[index]
+        if total ==0 :
+            result.append(np.nan)
+        else:
+            result.append(deaths[index]/(total/100))
+            
+    return result        
+
+def plotDeathRate(state,dates,actives,deaths,trim):
+    import matplotlib.pyplot as plt
+    
+    plt.close('all')
+    plt.rcParams["figure.figsize"] = (25,7)
+    
+    plt.title(f'{state}',fontsize=25)
+    plt.scatter(dates,getdeathRate(actives,deaths), color='black')
+    plt.ylabel('Death Rate', fontsize=20)
+    plt.xticks(rotation=75)
+    plt.yticks(fontsize=25)
+    plt.xlim(trim,)
+    
+    
